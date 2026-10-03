@@ -13,7 +13,7 @@ import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 // import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase;
 
-import java.time.Instant;
+import java.time.LocalDate;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -46,9 +46,7 @@ class MarketDataRepositoryTest {
 
         assetRepository.save(asset);
 
-        Instant timestamp = Instant.parse(
-            "2026-10-01T10:00:00Z"
-        );
+        LocalDate timestamp = LocalDate.of(2026, 10, 1);
 
         MarketData marketData = new MarketData(
             254.80,
@@ -93,7 +91,7 @@ class MarketDataRepositoryTest {
             255.10,
             183421.0,
             asset,
-            Instant.parse("2026-10-01T10:00:00Z")
+            LocalDate.of(2026, 10, 1)
         );
 
         MarketData savedMarketData =

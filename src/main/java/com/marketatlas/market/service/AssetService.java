@@ -10,4 +10,5 @@ public interface AssetService {
     Asset createAsset(Asset asset);
     List<Asset> findAssetsByClass(AssetClass assetClass);
     Optional<Asset> findAssetById(Long id);
+    Optional<Asset> findAssetBySymbol(String symbol);
 }

@@ -202,4 +202,29 @@ class AssetRepositoryTest {
         
         assertEquals("Gold", commodities.get(0).getName());
     }
+
+
+    @Test
+    void shouldFindAssetBySymbol() {
+        Issuer apple = new Issuer(
+            "Apple Inc.",
+            "United States"
+        );
+    
+        issuerRepository.save(apple);
+    
+        Asset appleAsset = new Asset(
+            "Apple",
+            "AAPL",
+            AssetClass.EQUITY,
+            apple
+        );
+    
+        assetRepository.save(appleAsset);
+    
+        Optional<Asset> asset = assetRepository.findBySymbol("AAPL");
+    
+        assertTrue(asset.isPresent());
+        assertEquals("Apple", asset.get().getName());
+    }
 }

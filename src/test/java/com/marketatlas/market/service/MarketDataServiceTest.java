@@ -3,6 +3,7 @@ package com.marketatlas.market.service;
 import com.marketatlas.market.entity.Asset;
 import com.marketatlas.market.entity.Issuer;
 import com.marketatlas.market.entity.MarketData;
+import com.marketatlas.market.client.MarketDataClient;
 import com.marketatlas.market.repository.MarketDataRepository;
 import com.marketatlas.enums.AssetClass;
 
@@ -13,9 +14,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import java.time.LocalDate;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -28,12 +29,18 @@ class MarketDataServiceTest {
     @Mock
     private MarketDataRepository marketDataRepository;
 
+    @Mock
+    private AssetService assetService;
+    
+    @Mock
+    private MarketDataClient marketDataClient;
+
     private MarketDataServiceImpl marketDataService;
 
     @BeforeEach
     void setUp() {
         marketDataService =
-            new MarketDataServiceImpl(marketDataRepository);
+            new MarketDataServiceImpl(marketDataRepository, assetService, marketDataClient);
     }
 
     @Test
@@ -58,7 +65,7 @@ class MarketDataServiceTest {
             255.10,
             183421.0,
             apple,
-            Instant.parse("2026-10-01T10:00:00Z")
+            LocalDate.of(2026, 10, 1)
         );
 
         when(marketDataRepository.save(marketData))
@@ -95,7 +102,7 @@ class MarketDataServiceTest {
             255.10,
             183421.0,
             apple,
-            Instant.parse("2026-10-01T10:00:00Z")
+            LocalDate.of(2026, 10, 1)
         );
 
         MarketData secondObservation = new MarketData(
@@ -105,7 +112,7 @@ class MarketDataServiceTest {
             255.42,
             142310.0,
             apple,
-            Instant.parse("2026-10-01T10:05:00Z")
+            LocalDate.of(2026, 10, 1)
         );
 
         List<MarketData> marketData =
@@ -147,7 +154,7 @@ class MarketDataServiceTest {
             255.10,
             183421.0,
             apple,
-            Instant.parse("2026-10-01T10:00:00Z")
+            LocalDate.of(2026, 10, 1)
         );
 
         Long id = 1L;
