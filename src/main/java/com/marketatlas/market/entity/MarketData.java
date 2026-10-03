@@ -3,7 +3,7 @@ package com.marketatlas.market.entity;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 
-import java.time.Instant;
+import java.time.LocalDate;
 
 
 @Entity 
@@ -25,9 +25,9 @@ public class MarketData {
     
     @NotNull 
     @Column (nullable=false)
-    private Instant timestamp;
+    private LocalDate timestamp;
 
-    public MarketData(Double open, Double high, Double low, Double close, Double volume, Asset asset, Instant timestamp) {
+    public MarketData(Double open, Double high, Double low, Double close, Double volume, Asset asset, LocalDate timestamp) {
         this.open = open;
         this.high = high;
         this.low = low;
@@ -69,7 +69,7 @@ public class MarketData {
         return asset;
     }
 
-    public Instant getTimestamp() {
+    public LocalDate getTimestamp() {
         return timestamp;
     }
 }

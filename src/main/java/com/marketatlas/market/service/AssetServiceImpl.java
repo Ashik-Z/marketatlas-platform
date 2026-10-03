@@ -3,11 +3,12 @@ package com.marketatlas.market.service;
 import com.marketatlas.market.entity.Asset;
 import com.marketatlas.enums.AssetClass;
 import com.marketatlas.market.repository.AssetRepository;
-// import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Optional;
 
+@Service 
 public class AssetServiceImpl implements AssetService {
 
     private final AssetRepository assetRepository;
@@ -29,5 +30,10 @@ public class AssetServiceImpl implements AssetService {
     @Override
     public Optional<Asset> findAssetById(Long id) {
         return assetRepository.findById(id);
+    }
+
+    @Override
+    public Optional<Asset> findAssetBySymbol(String symbol) {
+        return assetRepository.findBySymbol(symbol);
     }
 }

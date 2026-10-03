@@ -106,4 +106,25 @@ class AssetServiceTest {
     
         verify(assetRepository).findById(id);
     }
+
+    @Test
+    void shouldFindAssetBySymbol() {
+        Asset apple = new Asset(
+            "Apple",
+            "AAPL",
+            AssetClass.EQUITY,
+            null
+        );
+    
+        when(assetRepository.findBySymbol("AAPL"))
+            .thenReturn(Optional.of(apple));
+    
+        Optional<Asset> result =
+            assetService.findAssetBySymbol("AAPL");
+    
+        assertTrue(result.isPresent());
+        assertEquals(apple, result.get());
+    
+        verify(assetRepository).findBySymbol("AAPL");
+    }
 }

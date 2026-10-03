@@ -1,5 +1,6 @@
 package com.marketatlas.common.config;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.client.RestClient;
@@ -7,8 +8,13 @@ import org.springframework.web.client.RestClient;
 @Configuration
 public class RestClientConfig {
 
+    @Value("${twelvedata.base-url}")
+    private String baseUrl;
+
     @Bean
     public RestClient restClient() {
-        return RestClient.builder().build();
+        return RestClient.builder()
+            .baseUrl(baseUrl)
+            .build();
     }
 }
