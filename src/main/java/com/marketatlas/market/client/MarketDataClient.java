@@ -6,7 +6,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 public interface MarketDataClient {
-    List<MarketDataDTO> getMarketData(
+    List<MarketDataDTO> getHistoricalData(
         String symbol,
         LocalDate startDate,
         LocalDate endDate,
