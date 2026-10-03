@@ -1,7 +1,10 @@
 package com.marketatlas.market.dto;
 
 
-import java.time.Instant;
+import java.time.LocalDateTime;
+import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import java.time.LocalDateTime;
 
 
 public class MarketDataDTO {
@@ -11,9 +14,11 @@ public class MarketDataDTO {
     private Double close;
     private Double volume;
 
-    private Instant timestamp;
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    @JsonProperty("datetime")
+    private LocalDateTime timestamp;
 
-    public MarketDataDTO(Double open, Double high, Double low, Double close, Double volume, Instant timestamp) {
+    public MarketDataDTO(Double open, Double high, Double low, Double close, Double volume, LocalDateTime timestamp) {
         this.open = open;
         this.high = high;
         this.low = low;
@@ -46,7 +51,7 @@ public class MarketDataDTO {
         return volume;
     }
 
-    public Instant getTimestamp() {
+    public LocalDateTime getTimestamp() {
         return timestamp;
     }
 }
