@@ -4,6 +4,7 @@ import com.marketatlas.market.entity.Asset;
 import com.marketatlas.market.entity.MarketData;
 import com.marketatlas.market.dto.MarketDataDTO;
 
+import com.marketatlas.market.dto.MarketDataHistoryResponseDTO; 
 import com.marketatlas.market.repository.MarketDataRepository;
 import com.marketatlas.market.client.MarketDataClient;
 import org.springframework.stereotype.Service;
@@ -43,7 +44,7 @@ public class MarketDataServiceImpl implements MarketDataService {
     }
 
     @Override
-    public List<MarketData> fetchHistoricalData(String symbol, LocalDate startDate, LocalDate endDate, String interval) {
+    public List<MarketDataHistoryResponseDTO> fetchHistoricalData(String symbol, LocalDate startDate, LocalDate endDate, String interval) {
         Asset asset = assetService.findAssetBySymbol(symbol)
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Asset not found: " + symbol
@@ -73,6 +74,26 @@ public class MarketDataServiceImpl implements MarketDataService {
             marketDataList.add(marketData);
         }
 
-        return marketDataRepository.saveAll(marketDataList);
+        marketDataRepository.saveAll(marketDataList);
+
+        List<MarketDataHistoryResponseDTO> responseList = new ArrayList<>();
+        
+        for (MarketData marketData : marketDataList) {
+        
+            MarketDataHistoryResponseDTO response =
+                new MarketDataHistoryResponseDTO(
+                    symbol,
+                    marketData.getOpen(),
+                    marketData.getHigh(),
+                    marketData.getLow(),
+                    marketData.getClose(),
+                    marketData.getVolume(),
+                    marketData.getTimestamp()
+                );
+        
+            responseList.add(response);
+        }
+
+        return responseList;
     }
 }

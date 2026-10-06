@@ -1,11 +1,11 @@
 package com.marketatlas.market.controller;
 
-import com.marketatlas.market.entity.MarketData;
 import com.marketatlas.market.service.MarketDataService;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import com.marketatlas.market.dto.MarketDataHistoryResponseDTO;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -15,7 +15,7 @@ import java.util.List;
 public class MarketDataController {
 
     @GetMapping("/history")
-    public List<MarketData> getMarketHistory(
+    public List<MarketDataHistoryResponseDTO> getMarketHistory(
         @RequestParam String symbol, 
         @RequestParam LocalDate startDate, 
         @RequestParam LocalDate endDate, 

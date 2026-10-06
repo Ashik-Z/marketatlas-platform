@@ -6,6 +6,8 @@ import com.marketatlas.market.entity.MarketData;
 import com.marketatlas.market.client.MarketDataClient;
 import com.marketatlas.market.repository.MarketDataRepository;
 import com.marketatlas.enums.AssetClass;
+import com.marketatlas.market.dto.MarketDataDTO;
+import com.marketatlas.market.dto.MarketDataHistoryResponseDTO;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -170,5 +172,96 @@ class MarketDataServiceTest {
 
         verify(marketDataRepository)
             .findById(id);
+    }
+
+    @Test
+    void shouldFetchHistoricalData() {
+    
+        Issuer appleIssuer = new Issuer(
+            "Apple Inc.",
+            "United States"
+        );
+    
+        Asset apple = new Asset(
+            "Apple",
+            "AAPL",
+            AssetClass.EQUITY,
+            appleIssuer
+        );
+    
+        LocalDate startDate = LocalDate.of(2026, 9, 29);
+        LocalDate endDate = LocalDate.of(2026, 10, 2);
+    
+        MarketDataDTO firstDTO = new MarketDataDTO(
+            254.80,
+            255.30,
+            254.60,
+            255.10,
+            183421.0,
+            LocalDate.of(2026, 10, 1)
+        );
+    
+        MarketDataDTO secondDTO = new MarketDataDTO(
+            255.10,
+            255.50,
+            254.90,
+            255.42,
+            142310.0,
+            LocalDate.of(2026, 10, 2)
+        );
+    
+        List<MarketDataDTO> marketDataDTOs =
+            List.of(firstDTO, secondDTO);
+    
+        when(assetService.findAssetBySymbol("AAPL"))
+            .thenReturn(Optional.of(apple));
+    
+        when(marketDataClient.getHistoricalData(
+            "AAPL",
+            startDate,
+            endDate,
+            "1day"
+        )).thenReturn(marketDataDTOs);
+    
+        List<MarketDataHistoryResponseDTO> result =
+            marketDataService.fetchHistoricalData(
+                "AAPL",
+                startDate,
+                endDate,
+                "1day"
+            );
+    
+        assertEquals(2, result.size());
+    
+        assertEquals("AAPL", result.get(0).getSymbol());
+        assertEquals(254.80, result.get(0).getOpen());
+        assertEquals(255.30, result.get(0).getHigh());
+        assertEquals(254.60, result.get(0).getLow());
+        assertEquals(255.10, result.get(0).getClose());
+        assertEquals(183421.0, result.get(0).getVolume());
+        assertEquals(
+            LocalDate.of(2026, 10, 1),
+            result.get(0).getTimestamp()
+        );
+    
+        assertEquals("AAPL", result.get(1).getSymbol());
+        assertEquals(
+            LocalDate.of(2026, 10, 2),
+            result.get(1).getTimestamp()
+        );
+    
+        verify(assetService)
+            .findAssetBySymbol("AAPL");
+    
+        verify(marketDataClient)
+            .getHistoricalData(
+                "AAPL",
+                startDate,
+                endDate,
+                "1day"
+            );
+    
+        verify(marketDataRepository)
+            .saveAll(org.mockito.ArgumentMatchers.anyList());
     }
 }
