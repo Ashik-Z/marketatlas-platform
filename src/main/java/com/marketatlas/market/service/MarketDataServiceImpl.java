@@ -61,16 +61,35 @@ public class MarketDataServiceImpl implements MarketDataService {
         List<MarketData> marketDataList = new ArrayList<>();
         
         for (MarketDataDTO dto : marketDataDTOs) {
-            MarketData marketData = new MarketData(
-                dto.getOpen(),
-                dto.getHigh(),
-                dto.getLow(),
-                dto.getClose(),
-                dto.getVolume(),
-                asset,
-                dto.getTimestamp()
-            );
-        
+            Optional<MarketData> existingRecord = 
+                marketDataRepository.findByAssetAndTimestamp(
+                    asset, dto.getTimestamp()
+                );
+
+            MarketData marketData;
+
+            if (existingRecord.isPresent()) {
+                marketData = existingRecord.get();
+
+                marketData.updateMarketValues(
+                    dto.getOpen(), 
+                    dto.getHigh(), 
+                    dto.getLow(), 
+                    dto.getClose(), 
+                    dto.getVolume()
+                );
+            } else {
+                marketData = new MarketData(
+                    dto.getOpen(),
+                    dto.getHigh(),
+                    dto.getLow(),
+                    dto.getClose(),
+                    dto.getVolume(),
+                    asset,
+                    dto.getTimestamp()
+                );
+            }
+            
             marketDataList.add(marketData);
         }
 

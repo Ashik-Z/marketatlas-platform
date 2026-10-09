@@ -1,13 +1,21 @@
 package com.marketatlas.market.entity;
 
 import jakarta.persistence.*;
+import jakarta.persistence.UniqueConstraint;
 import jakarta.validation.constraints.NotNull;
 
 import java.time.LocalDate;
 
 
 @Entity 
-@Table(name = "market_data")
+@Table(
+    name = "market_data",
+    uniqueConstraints  = {
+        @UniqueConstraint (
+            columnNames = {"asset_id", "timestamp"}
+        )
+    }
+)
 public class MarketData {
     @Id 
     @GeneratedValue (strategy=GenerationType.IDENTITY)
@@ -71,5 +79,13 @@ public class MarketData {
 
     public LocalDate getTimestamp() {
         return timestamp;
+    }
+
+    public void updateMarketValues(Double open, Double high, Double low, Double close, Double volume) {
+        this.open = open;
+        this.high = high;
+        this.low = low;
+        this.close = close;
+        this.volume = volume;
     }
 }
