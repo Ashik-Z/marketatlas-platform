@@ -14,7 +14,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 import org.mockito.Mock;
+import static org.mockito.Mockito.never;
 import org.mockito.junit.jupiter.MockitoExtension;
+import static org.mockito.ArgumentMatchers.anyList;
 
 import java.util.List;
 import java.util.Optional;
@@ -263,5 +265,89 @@ class MarketDataServiceTest {
     
         verify(marketDataRepository)
             .saveAll(org.mockito.ArgumentMatchers.anyList());
+    }
+
+    
+    @Test
+    void shouldUpdateExistingMarketDataInsteadOfCreatingDuplicate() {
+        Issuer appleIssuer = new Issuer(
+            "Apple Inc.",
+            "United States"
+        );
+    
+        Asset apple = new Asset(
+            "Apple",
+            "AAPL",
+            AssetClass.EQUITY,
+            appleIssuer
+        );
+    
+        LocalDate date = LocalDate.of(2026, 10, 1);
+    
+        MarketData existingRecord = new MarketData(
+            250.00,
+            252.00,
+            249.00,
+            251.00,
+            100000.0,
+            apple,
+            date
+        );
+    
+        MarketDataDTO updatedDTO = new MarketDataDTO(
+            254.80,
+            255.30,
+            254.60,
+            255.10,
+            183421.0,
+            date
+        );
+    
+        when(assetService.findAssetBySymbol("AAPL"))
+            .thenReturn(Optional.of(apple));
+    
+        when(marketDataClient.getHistoricalData(
+            "AAPL",
+            date,
+            date,
+            "1day"
+        )).thenReturn(List.of(updatedDTO));
+    
+        when(marketDataRepository.findByAssetAndTimestamp(apple, date))
+            .thenReturn(Optional.of(existingRecord));
+    
+        List<MarketDataHistoryResponseDTO> result =
+            marketDataService.fetchHistoricalData(
+                "AAPL",
+                date,
+                date,
+                "1day"
+            );
+    
+        // The existing entity should be updated.
+        assertEquals(254.80, existingRecord.getOpen());
+        assertEquals(255.30, existingRecord.getHigh());
+        assertEquals(254.60, existingRecord.getLow());
+        assertEquals(255.10, existingRecord.getClose());
+        assertEquals(183421.0, existingRecord.getVolume());
+    
+        // The response should contain the updated values.
+        assertEquals(1, result.size());
+        assertEquals(255.10, result.get(0).getClose());
+    
+        // The service should look up the existing record.
+        verify(marketDataRepository)
+            .findByAssetAndTimestamp(apple, date);
+    
+        // The existing entity should be included in the save operation.
+        org.mockito.ArgumentCaptor<List<MarketData>> captor =
+            org.mockito.ArgumentCaptor.forClass(List.class);
+    
+        verify(marketDataRepository).saveAll(captor.capture());
+    
+        List<MarketData> savedRecords = captor.getValue();
+    
+        assertEquals(1, savedRecords.size());
+        assertTrue(savedRecords.get(0) == existingRecord);
     }
 }
