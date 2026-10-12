@@ -7,6 +7,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import com.marketatlas.market.dto.MarketDataHistoryResponseDTO;
 
+import jakarta.validation.constraints.NotBlank;
+
 import java.time.LocalDate;
 import java.util.List;
 
@@ -16,11 +18,17 @@ public class MarketDataController {
 
     @GetMapping("/history")
     public List<MarketDataHistoryResponseDTO> getMarketHistory(
-        @RequestParam String symbol, 
+        @RequestParam @NotBlank String symbol, 
         @RequestParam LocalDate startDate, 
         @RequestParam LocalDate endDate, 
-        @RequestParam String interval
+        @RequestParam @NotBlank String interval
     ) {
+        if (startDate.isAfter(endDate)) {
+            throw new IllegalArgumentException(
+                "startDate must be before or equal to endDate"
+            );
+        }
+        
         return marketDataService.fetchHistoricalData(symbol, startDate, endDate, interval);
     }
 
