@@ -5,6 +5,7 @@ import com.marketatlas.market.service.MarketDataService;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import static org.mockito.Mockito.verifyNoInteractions;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -62,11 +63,11 @@ class MarketDataControllerTest {
         )).thenReturn(response);
 
         mockMvc.perform(
-                get("/api/market-data/history")
-                    .param("symbol", "AAPL")
-                    .param("startDate", "2026-09-29")
-                    .param("endDate", "2026-10-02")
-                    .param("interval", "1day")
+            get("/api/market-data/history")
+                .param("symbol", "AAPL")
+                .param("startDate", "2026-09-29")
+                .param("endDate", "2026-10-02")
+                .param("interval", "1day")
             )
             .andExpect(status().isOk())
             .andExpect(jsonPath("$[0].symbol").value("AAPL"))
@@ -79,4 +80,59 @@ class MarketDataControllerTest {
             .andExpect(jsonPath("$[1].symbol").value("AAPL"))
             .andExpect(jsonPath("$[1].timestamp").value("2026-10-02"));
     }
+
+    @Test
+    void shouldRejectInvalidDateRange() throws Exception {
+        mockMvc.perform(
+            get("/api/market-data/history")
+                .param("symbol", "AAPL")
+                .param("startDate", "2026-10-05")
+                .param("endDate", "2026-10-01")
+                .param("interval", "1day")
+        )
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.title").value("Bad Request"))
+        .andExpect(jsonPath("$.detail").value(
+            "startDate must be before or equal to endDate"
+        ));
+
+        verifyNoInteractions(marketDataService);
+    }
+
+    @Test
+    void shouldRejectBlankSymbol() throws Exception {
+        mockMvc.perform(
+            get("/api/market-data/history")
+                .param("symbol", "   ")
+                .param("startDate", "2026-10-01")
+                .param("endDate", "2026-10-05")
+                .param("interval", "1day")
+        )
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.title").value("Bad Request"))
+        .andExpect(jsonPath("$.detail").value(
+            "One or more request parameters are invalid."
+        ));
+
+        verifyNoInteractions(marketDataService);
+    }
+
+    @Test
+    void shouldRejectBlankInterval() throws Exception {
+        mockMvc.perform(
+            get("/api/market-data/history")
+                .param("symbol", "AAPL")
+                .param("startDate", "2026-10-01")
+                .param("endDate", "2026-10-05")
+                .param("interval", "    ")
+        )
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.title").value("Bad Request"))
+        .andExpect(jsonPath("$.detail").value(
+            "One or more request parameters are invalid."
+        ));
+
+        verifyNoInteractions(marketDataService);
+    }
+    
 }
