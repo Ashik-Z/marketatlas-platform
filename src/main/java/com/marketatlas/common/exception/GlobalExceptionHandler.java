@@ -34,4 +34,20 @@ public class GlobalExceptionHandler {
     
         return problemDetail;
     }
+
+    @ExceptionHandler(MarketDataProviderException.class)
+    @ResponseStatus(HttpStatus.BAD_GATEWAY)
+    public ProblemDetail handleMarketDataProviderException(
+            MarketDataProviderException exception) {
+    
+        ProblemDetail problemDetail =
+                ProblemDetail.forStatus(HttpStatus.BAD_GATEWAY);
+    
+        problemDetail.setTitle("Market Data Provider Error");
+        problemDetail.setDetail(
+                "The market data provider could not fulfill the request."
+        );
+    
+        return problemDetail;
+    }
 }
