@@ -17,6 +17,8 @@ import org.mockito.Mock;
 import static org.mockito.Mockito.never;
 import org.mockito.junit.jupiter.MockitoExtension;
 import static org.mockito.ArgumentMatchers.anyList;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 import java.util.List;
 import java.util.Optional;
@@ -350,4 +352,26 @@ class MarketDataServiceTest {
         assertEquals(1, savedRecords.size());
         assertTrue(savedRecords.get(0) == existingRecord);
     }
+
+    @Test
+    void shouldRejectUnsupportedIntervalBeforeCallingDependencies() {
+        IllegalArgumentException exception = assertThrows(
+            IllegalArgumentException.class,
+            () -> marketDataService.fetchHistoricalData(
+                "AAPL",
+                LocalDate.of(2026, 10, 1),
+                LocalDate.of(2026, 10, 5),
+                "abc"
+            )
+        );
+    
+        assertEquals("Unsupported interval: abc", exception.getMessage());
+    
+        verifyNoInteractions(
+            assetService,
+            marketDataClient,
+            marketDataRepository
+        );
+    }
+    
 }
