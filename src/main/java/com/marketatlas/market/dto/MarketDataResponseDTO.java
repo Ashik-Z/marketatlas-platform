@@ -9,14 +9,30 @@ public class MarketDataResponseDTO {
     private String exchange;
     private List<MarketDataDTO> values;
     private String status;
+    private Integer code;
+    private String message;
 
-    public MarketDataResponseDTO(String symbol, String interval, String currency, String exchange, List<MarketDataDTO> values, String status) {
+    public MarketDataResponseDTO() {
+    }
+
+    public MarketDataResponseDTO(
+        String symbol, 
+        String interval, 
+        String currency, 
+        String exchange, 
+        List<MarketDataDTO> values, 
+        String status, 
+        Integer code, 
+        String message
+    ) {
         this.symbol = symbol;
         this.interval = interval;
         this.currency = currency;
         this.exchange = exchange;
         this.values = values;
         this.status = status;
+        this.code = code;
+        this.message = message;
     }
 
     public String getSymbol() {
@@ -41,6 +57,14 @@ public class MarketDataResponseDTO {
 
     public String getStatus() {
         return status;
+    }
+
+    public Integer getCode() {
+        return code;
+    }
+    
+    public String getMessage() {
+        return message;
     }
     
 }
