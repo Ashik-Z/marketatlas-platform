@@ -5,6 +5,8 @@ import com.marketatlas.market.dto.MarketDataDTO;
 import com.marketatlas.market.dto.MarketDataResponseDTO;
 import org.springframework.web.client.RestClient;
 import org.springframework.beans.factory.annotation.Value;
+import com.marketatlas.common.exception.MarketDataProviderException;
+import org.springframework.web.client.RestClientResponseException;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -31,43 +33,37 @@ public class TwelveDataMarketDataClient implements MarketDataClient {
         LocalDate endDate,
         String interval
     ) {
-        // return restClient
-        //     .get()
-        //     .uri(uriBuilder -> uriBuilder
-        //         .path("/time_series")
-        //         .queryParam("symbol", symbol)
-        //         .queryParam("interval", interval)
-        //         .queryParam("start_date", startDate)
-        //         .queryParam("end_date", endDate)
-        //         .queryParam("apikey", apiKey)
-        //         .build())
-        //     .header("Accept", "application/json")
-        //     .retrieve()
-        //     .body(MarketDataResponseDTO.class)
-        //     .getValues();
-        // 
-        MarketDataResponseDTO response = restClient
-                .get()
-                .uri(uriBuilder -> uriBuilder
-                    .path("/time_series")
-                    .queryParam("symbol", symbol)
-                    .queryParam("interval", interval)
-                    .queryParam("start_date", startDate)
-                    .queryParam("end_date", endDate)
-                    .queryParam("apikey", apiKey)
-                    .build())
-                .header("Accept", "application/json")
-                .retrieve()
-                .body(MarketDataResponseDTO.class);
+        MarketDataResponseDTO response;
+
+        try{
+            response = restClient
+                    .get()
+                    .uri(uriBuilder -> uriBuilder
+                        .path("/time_series")
+                        .queryParam("symbol", symbol)
+                        .queryParam("interval", interval)
+                        .queryParam("start_date", startDate)
+                        .queryParam("end_date", endDate)
+                        .queryParam("apikey", apiKey)
+                        .build())
+                    .header("Accept", "application/json")
+                    .retrieve()
+                    .body(MarketDataResponseDTO.class);
+            } catch (RestClientResponseException exception) {
+                throw new MarketDataProviderException(
+                    "Twelve Data returned an HTTP error.",
+                    exception
+                );
+            }
         
             if (response == null) {
-                throw new IllegalStateException(
+                throw new MarketDataProviderException(
                     "Twelve Data returned an empty response."
                 );
             }
         
             if ("error".equalsIgnoreCase(response.getStatus())) {
-                throw new IllegalStateException(
+                throw new MarketDataProviderException(
                     "Twelve Data request failed. Code: "
                         + response.getCode()
                         + ", message: "
@@ -76,7 +72,7 @@ public class TwelveDataMarketDataClient implements MarketDataClient {
             }
         
             if (response.getValues() == null) {
-                throw new IllegalStateException(
+                throw new MarketDataProviderException(
                     "Twelve Data response did not contain market data."
                 );
             }

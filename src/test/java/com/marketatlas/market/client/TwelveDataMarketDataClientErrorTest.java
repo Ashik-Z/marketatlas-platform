@@ -5,6 +5,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.RestClient;
+import com.marketatlas.common.exception.MarketDataProviderException;
+import org.springframework.http.HttpStatus;
 
 import java.time.LocalDate;
 
@@ -15,6 +17,7 @@ import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.method;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
+import static org.springframework.test.web.client.response.MockRestResponseCreators.withStatus;
 import static org.springframework.http.HttpMethod.GET;
 
 class TwelveDataMarketDataClientErrorTest {
@@ -46,8 +49,8 @@ class TwelveDataMarketDataClientErrorTest {
                 }
                 """, APPLICATION_JSON));
 
-        IllegalStateException exception = assertThrows(
-            IllegalStateException.class,
+        MarketDataProviderException exception = assertThrows(
+            MarketDataProviderException.class,
             () -> client.getHistoricalData(
                 "INVALID",
                 LocalDate.of(2026, 10, 1),
@@ -67,8 +70,8 @@ class TwelveDataMarketDataClientErrorTest {
             .andExpect(method(GET))
             .andRespond(withSuccess("", APPLICATION_JSON));
     
-        IllegalStateException exception = assertThrows(
-            IllegalStateException.class,
+        MarketDataProviderException exception = assertThrows(
+            MarketDataProviderException.class,
             () -> client.getHistoricalData(
                 "AAPL",
                 LocalDate.of(2026, 10, 1),
@@ -98,8 +101,8 @@ class TwelveDataMarketDataClientErrorTest {
                 }
                 """, APPLICATION_JSON));
     
-        IllegalStateException exception = assertThrows(
-            IllegalStateException.class,
+        MarketDataProviderException exception = assertThrows(
+            MarketDataProviderException.class,
             () -> client.getHistoricalData(
                 "AAPL",
                 LocalDate.of(2026, 10, 1),
@@ -115,4 +118,33 @@ class TwelveDataMarketDataClientErrorTest {
     
         mockServer.verify();
     }
+
+    @Test
+    void shouldWrapHttpErrorResponse() {
+        mockServer.expect(requestTo(
+                org.hamcrest.Matchers.containsString("/time_series")))
+            .andExpect(method(GET))
+            .andRespond(withStatus(HttpStatus.TOO_MANY_REQUESTS));
+    
+        MarketDataProviderException exception = assertThrows(
+            MarketDataProviderException.class,
+            () -> client.getHistoricalData(
+                "AAPL",
+                LocalDate.of(2026, 10, 1),
+                LocalDate.of(2026, 10, 5),
+                "1day"
+            )
+        );
+    
+        assertEquals(
+            "Twelve Data returned an HTTP error.",
+            exception.getMessage()
+        );
+    
+        assertTrue(exception.getCause() instanceof
+            org.springframework.web.client.RestClientResponseException);
+    
+        mockServer.verify();
+    }
+    
 }
