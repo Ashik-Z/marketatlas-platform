@@ -7,6 +7,7 @@ import org.springframework.web.client.RestClient;
 import org.springframework.beans.factory.annotation.Value;
 import com.marketatlas.common.exception.MarketDataProviderException;
 import org.springframework.web.client.RestClientResponseException;
+import org.springframework.web.client.ResourceAccessException;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -52,6 +53,11 @@ public class TwelveDataMarketDataClient implements MarketDataClient {
             } catch (RestClientResponseException exception) {
                 throw new MarketDataProviderException(
                     "Twelve Data returned an HTTP error.",
+                    exception
+                );
+            } catch (ResourceAccessException exception) {
+            throw new MarketDataProviderException(
+                    "Unable to communicate with Twelve Data.",
                     exception
                 );
             }

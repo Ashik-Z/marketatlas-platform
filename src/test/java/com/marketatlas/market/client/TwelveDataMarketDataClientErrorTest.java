@@ -20,6 +20,8 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withStatus;
 import static org.springframework.http.HttpMethod.GET;
 
+import java.io.IOException;
+
 class TwelveDataMarketDataClientErrorTest {
 
     private MockRestServiceServer mockServer;
@@ -146,5 +148,35 @@ class TwelveDataMarketDataClientErrorTest {
     
         mockServer.verify();
     }
-    
+
+    @Test
+    void shouldWrapConnectionFailure() {
+        mockServer.expect(requestTo(
+                        org.hamcrest.Matchers.containsString("/time_series")))
+                .andExpect(method(GET))
+                .andRespond(request -> {
+                    throw new IOException("Connection failed");
+                });
+
+        MarketDataProviderException exception = assertThrows(
+                MarketDataProviderException.class,
+                () -> client.getHistoricalData(
+                        "AAPL",
+                        LocalDate.of(2026, 10, 1),
+                        LocalDate.of(2026, 10, 5),
+                        "1day"
+                )
+        );
+
+        assertEquals(
+                "Unable to communicate with Twelve Data.",
+                exception.getMessage()
+        );
+
+        assertTrue(exception.getCause() instanceof
+                org.springframework.web.client.ResourceAccessException);
+
+        mockServer.verify();
+    }
+
 }
