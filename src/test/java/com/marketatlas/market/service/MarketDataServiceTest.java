@@ -325,23 +325,19 @@ class MarketDataServiceTest {
                 date,
                 "1day"
             );
-    
-        // The existing entity should be updated.
+
         assertEquals(254.80, existingRecord.getOpen());
         assertEquals(255.30, existingRecord.getHigh());
         assertEquals(254.60, existingRecord.getLow());
         assertEquals(255.10, existingRecord.getClose());
         assertEquals(183421.0, existingRecord.getVolume());
-    
-        // The response should contain the updated values.
+
         assertEquals(1, result.size());
         assertEquals(255.10, result.get(0).getClose());
-    
-        // The service should look up the existing record.
+
         verify(marketDataRepository)
             .findByAssetAndTimestamp(apple, date);
-    
-        // The existing entity should be included in the save operation.
+
         org.mockito.ArgumentCaptor<List<MarketData>> captor =
             org.mockito.ArgumentCaptor.forClass(List.class);
     
@@ -373,5 +369,35 @@ class MarketDataServiceTest {
             marketDataRepository
         );
     }
-    
+
+    @Test
+    void shouldRejectDuplicateTimestampsInProviderResponse() {
+        Issuer appleIssuer = new Issuer("Apple Inc.", "United States");
+        Asset apple = new Asset("Apple", "AAPL", AssetClass.EQUITY, appleIssuer);
+
+        LocalDate date = LocalDate.of(2026, 10, 1);
+
+        MarketDataDTO firstDTO = new MarketDataDTO(
+                250.0, 255.0, 249.0, 252.0, 100000.0, date
+        );
+        MarketDataDTO duplicateDTO = new MarketDataDTO(
+                251.0, 256.0, 250.0, 253.0, 110000.0, date
+        );
+
+        when(assetService.findAssetBySymbol("AAPL"))
+                .thenReturn(Optional.of(apple));
+
+        when(marketDataClient.getHistoricalData(
+                "AAPL", date, date, "1day"
+        )).thenReturn(List.of(firstDTO, duplicateDTO));
+
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> marketDataService.fetchHistoricalData(
+                        "AAPL", date, date, "1day"
+                )
+        );
+
+        verify(marketDataRepository, never()).saveAll(org.mockito.ArgumentMatchers.anyList());
+    }
 }
