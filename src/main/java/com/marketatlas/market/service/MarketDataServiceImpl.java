@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.Set;
 import java.util.List;
+import java.util.HashSet;
 import java.util.Optional;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -71,6 +72,16 @@ public class MarketDataServiceImpl implements MarketDataService {
                 endDate,
                 interval
             );
+
+        Set<LocalDate> timestamps = new HashSet<>();
+
+        for (MarketDataDTO dto : marketDataDTOs) {
+            if (!timestamps.add(dto.getTimestamp())) {
+                throw new IllegalArgumentException(
+                        "Duplicate market data timestamp: " + dto.getTimestamp()
+                );
+            }
+        }
 
         List<MarketData> marketDataList = new ArrayList<>();
         
