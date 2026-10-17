@@ -179,4 +179,106 @@ class TwelveDataMarketDataClientErrorTest {
         mockServer.verify();
     }
 
+    @Test
+    void shouldRejectResponseWithUnexpectedStatus() {
+        mockServer.expect(requestTo(
+                        org.hamcrest.Matchers.containsString("/time_series")))
+                .andExpect(method(GET))
+                .andRespond(withSuccess("""
+                {
+                    "symbol": "AAPL",
+                    "interval": "1day",
+                    "status": "pending",
+                    "values": []
+                }
+                """, APPLICATION_JSON));
+
+        MarketDataProviderException exception = assertThrows(
+                MarketDataProviderException.class,
+                () -> client.getHistoricalData(
+                        "AAPL",
+                        LocalDate.of(2026, 9, 29),
+                        LocalDate.of(2026, 10, 2),
+                        "1day"
+                )
+        );
+
+        assertTrue(exception.getMessage().contains("status"));
+
+        mockServer.verify();
+    }
+
+    @Test
+    void shouldRejectMarketDataRecordWithMissingFields() {
+        mockServer.expect(requestTo(
+                        org.hamcrest.Matchers.containsString("/time_series")))
+                .andExpect(method(GET))
+                .andRespond(withSuccess("""
+                {
+                    "symbol": "AAPL",
+                    "interval": "1day",
+                    "status": "ok",
+                    "values": [
+                        {
+                            "datetime": "2026-10-01",
+                            "open": 250.0,
+                            "high": 255.0,
+                            "low": 249.0
+                        }
+                    ]
+                }
+                """, APPLICATION_JSON));
+
+        MarketDataProviderException exception = assertThrows(
+                MarketDataProviderException.class,
+                () -> client.getHistoricalData(
+                        "AAPL",
+                        LocalDate.of(2026, 10, 1),
+                        LocalDate.of(2026, 10, 2),
+                        "1day"
+                )
+        );
+
+        assertTrue(exception.getMessage().contains("market data record"));
+
+        mockServer.verify();
+    }
+
+    @Test
+    void shouldRejectMarketDataRecordWithInconsistentOhlcValues() {
+        mockServer.expect(requestTo(
+                        org.hamcrest.Matchers.containsString("/time_series")))
+                .andExpect(method(GET))
+                .andRespond(withSuccess("""
+                {
+                    "symbol": "AAPL",
+                    "interval": "1day",
+                    "status": "ok",
+                    "values": [
+                        {
+                            "datetime": "2026-10-01",
+                            "open": 250.0,
+                            "high": 248.0,
+                            "low": 249.0,
+                            "close": 251.0,
+                            "volume": 1000
+                        }
+                    ]
+                }
+                """, APPLICATION_JSON));
+
+        MarketDataProviderException exception = assertThrows(
+                MarketDataProviderException.class,
+                () -> client.getHistoricalData(
+                        "AAPL",
+                        LocalDate.of(2026, 10, 1),
+                        LocalDate.of(2026, 10, 2),
+                        "1day"
+                )
+        );
+
+        assertTrue(exception.getMessage().contains("invalid market data record"));
+
+        mockServer.verify();
+    }
 }
