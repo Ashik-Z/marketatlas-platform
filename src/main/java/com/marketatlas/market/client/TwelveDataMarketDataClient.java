@@ -67,22 +67,67 @@ public class TwelveDataMarketDataClient implements MarketDataClient {
                     "Twelve Data returned an empty response."
                 );
             }
-        
+
             if ("error".equalsIgnoreCase(response.getStatus())) {
                 throw new MarketDataProviderException(
-                    "Twelve Data request failed. Code: "
-                        + response.getCode()
-                        + ", message: "
-                        + response.getMessage()
+                        "Twelve Data request failed. Code: "
+                                + response.getCode()
+                                + ", message: "
+                                + response.getMessage()
                 );
             }
-        
+
+            if (!"ok".equalsIgnoreCase(response.getStatus())) {
+                throw new MarketDataProviderException(
+                        "Twelve Data response contained an unexpected status: "
+                                + response.getStatus()
+                );
+            }
+
             if (response.getValues() == null) {
                 throw new MarketDataProviderException(
-                    "Twelve Data response did not contain market data."
+                        "Twelve Data response did not contain market data."
                 );
             }
-        
+
+            for (MarketDataDTO record : response.getValues()) {
+                if (record == null
+                        || record.getOpen() == null
+                        || record.getHigh() == null
+                        || record.getLow() == null
+                        || record.getClose() == null
+                        || record.getTimestamp() == null) {
+                    throw new MarketDataProviderException(
+                            "Twelve Data response contained an invalid market data record: "
+                                    + "a required field was missing."
+                    );
+                }
+
+                double open = record.getOpen();
+                double high = record.getHigh();
+                double low = record.getLow();
+                double close = record.getClose();
+
+                if (!Double.isFinite(open)
+                        || !Double.isFinite(high)
+                        || !Double.isFinite(low)
+                        || !Double.isFinite(close)
+                        || open <= 0
+                        || high <= 0
+                        || low <= 0
+                        || close <= 0
+                        || high < low
+                        || high < open
+                        || high < close
+                        || low > open
+                        || low > close) {
+                    throw new MarketDataProviderException(
+                            "Twelve Data response contained an invalid market data record: "
+                                    + "OHLC values were invalid."
+                    );
+                }
+            }
+
             return response.getValues();
     }
 }
