@@ -7,6 +7,9 @@ import com.marketatlas.enums.AssetClass;
 import com.marketatlas.market.repository.AssetRepository;
 import com.marketatlas.market.repository.MarketDataRepository;
 
+import com.marketatlas.market.TestPostgresConfiguration;
+import org.springframework.context.annotation.Import;
+
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
@@ -21,6 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
+@Import(TestPostgresConfiguration.class)
 class MarketDataRepositoryTest {
 
     @Autowired
