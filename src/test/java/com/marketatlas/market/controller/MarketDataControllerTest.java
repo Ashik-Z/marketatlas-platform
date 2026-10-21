@@ -135,4 +135,35 @@ class MarketDataControllerTest {
         verifyNoInteractions(marketDataService);
     }
     
+    @Test
+    void shouldRejectMissingStartDate() throws Exception {
+        mockMvc.perform(
+                        get("/api/market-data/history")
+                                .param("symbol", "AAPL")
+                                .param("endDate", "2026-10-05")
+                                .param("interval", "1day")
+                )
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.title").value("Bad Request"))
+                .andExpect(jsonPath("$.detail").value(
+                        "Required request parameter 'startDate' is missing."
+                ));
+
+        verifyNoInteractions(marketDataService);
+    }
+
+    @Test
+    void shouldRejectMalformedStartDate() throws Exception {
+        mockMvc.perform(
+                        get("/api/market-data/history")
+                                .param("symbol", "AAPL")
+                                .param("startDate", "not-a-date")
+                                .param("endDate", "2026-10-05")
+                                .param("interval", "1day")
+                )
+                .andExpect(status().isBadRequest());
+
+        verifyNoInteractions(marketDataService);
+    }
+
 }
