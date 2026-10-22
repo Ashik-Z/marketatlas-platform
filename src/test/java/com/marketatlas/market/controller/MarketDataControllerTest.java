@@ -166,4 +166,16 @@ class MarketDataControllerTest {
         verifyNoInteractions(marketDataService);
     }
 
+    @Test
+    void shouldRejectMissingSymbol() throws Exception {
+        mockMvc.perform(
+                        get("/api/market-data/history")
+                                .param("startDate", "2026-10-01")
+                                .param("endDate", "2026-10-05")
+                                .param("interval", "1day")
+                )
+                .andExpect(status().isBadRequest());
+
+        verifyNoInteractions(marketDataService);
+    }
 }
