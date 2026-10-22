@@ -350,6 +350,33 @@ class MarketDataServiceTest {
     }
 
     @Test
+    void shouldRejectInvalidDateRangeBeforeCallingDependencies() {
+        LocalDate startDate = LocalDate.of(2026, 10, 5);
+        LocalDate endDate = LocalDate.of(2026, 10, 1);
+
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> marketDataService.fetchHistoricalData(
+                        "AAPL",
+                        startDate,
+                        endDate,
+                        "1day"
+                )
+        );
+
+        assertEquals(
+                "startDate must be before or equal to endDate",
+                exception.getMessage()
+        );
+
+        verifyNoInteractions(
+                assetService,
+                marketDataClient,
+                marketDataRepository
+        );
+    }
+
+    @Test
     void shouldRejectUnsupportedIntervalBeforeCallingDependencies() {
         IllegalArgumentException exception = assertThrows(
             IllegalArgumentException.class,

@@ -59,6 +59,12 @@ public class MarketDataServiceImpl implements MarketDataService {
                 "Unsupported interval: " + interval
             );
         }
+
+        if (startDate != null && endDate != null && startDate.isAfter(endDate)) {
+            throw new IllegalArgumentException(
+                    "startDate must be before or equal to endDate"
+            );
+        }
         
         Asset asset = assetService.findAssetBySymbol(symbol)
                 .orElseThrow(() -> new IllegalArgumentException(
