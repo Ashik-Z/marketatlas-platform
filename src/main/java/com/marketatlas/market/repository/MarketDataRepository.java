@@ -8,6 +8,7 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 import java.util.Optional;
 import java.time.LocalDate;
+import java.util.Collection;
 
 @Repository
 public interface MarketDataRepository extends JpaRepository<MarketData, Long> {
@@ -15,5 +16,9 @@ public interface MarketDataRepository extends JpaRepository<MarketData, Long> {
     Optional<MarketData> findByAssetAndTimestamp(
         Asset asset,
         LocalDate timestamp
+    );
+    List<MarketData> findByAssetAndTimestampIn(
+            Asset asset,
+            Collection<LocalDate> timestamps
     );
 }
