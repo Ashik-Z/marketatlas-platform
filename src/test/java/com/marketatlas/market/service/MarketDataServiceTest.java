@@ -269,6 +269,36 @@ class MarketDataServiceTest {
             .saveAll(org.mockito.ArgumentMatchers.anyList());
     }
 
+    @Test
+    void shouldReturnEmptyListWhenProviderReturnsNoHistoricalData() {
+        Issuer appleIssuer = new Issuer("Apple Inc.", "United States");
+        Asset apple = new Asset("Apple", "AAPL", AssetClass.EQUITY, appleIssuer);
+
+        LocalDate date = LocalDate.of(2026, 10, 1);
+
+        when(assetService.findAssetBySymbol("AAPL"))
+                .thenReturn(Optional.of(apple));
+
+        when(marketDataClient.getHistoricalData(
+                "AAPL", date, date, "1day"
+        )).thenReturn(List.of());
+
+        List<MarketDataHistoryResponseDTO> result =
+                marketDataService.fetchHistoricalData(
+                        "AAPL", date, date, "1day"
+                );
+
+        assertTrue(result.isEmpty());
+
+        verify(marketDataRepository, never())
+                .findByAssetAndTimestampIn(
+                        org.mockito.ArgumentMatchers.eq(apple),
+                        org.mockito.ArgumentMatchers.anyCollection()
+                );
+
+        verify(marketDataRepository, never())
+                .saveAll(anyList());
+    }
     
     @Test
     void shouldUpdateExistingMarketDataInsteadOfCreatingDuplicate() {
@@ -314,9 +344,11 @@ class MarketDataServiceTest {
             date,
             "1day"
         )).thenReturn(List.of(updatedDTO));
-    
-        when(marketDataRepository.findByAssetAndTimestamp(apple, date))
-            .thenReturn(Optional.of(existingRecord));
+
+        when(marketDataRepository.findByAssetAndTimestampIn(
+                apple,
+                List.of(date)
+        )).thenReturn(List.of(existingRecord));
     
         List<MarketDataHistoryResponseDTO> result =
             marketDataService.fetchHistoricalData(
@@ -336,7 +368,7 @@ class MarketDataServiceTest {
         assertEquals(255.10, result.get(0).getClose());
 
         verify(marketDataRepository)
-            .findByAssetAndTimestamp(apple, date);
+                .findByAssetAndTimestampIn(apple, List.of(date));
 
         org.mockito.ArgumentCaptor<List<MarketData>> captor =
             org.mockito.ArgumentCaptor.forClass(List.class);

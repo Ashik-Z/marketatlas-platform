@@ -16,6 +16,10 @@ import java.util.Optional;
 import java.time.LocalDate;
 import java.util.ArrayList;
 
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
 
 @Service
 public class MarketDataServiceImpl implements MarketDataService {
@@ -90,37 +94,48 @@ public class MarketDataServiceImpl implements MarketDataService {
         }
 
         List<MarketData> marketDataList = new ArrayList<>();
-        
+
+        if (marketDataDTOs.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        List<LocalDate> requestedTimestamps = marketDataDTOs.stream()
+                .map(MarketDataDTO::getTimestamp)
+                .toList();
+
+        Map<LocalDate, MarketData> existingRecords =
+                marketDataRepository.findByAssetAndTimestampIn(
+                        asset,
+                        requestedTimestamps
+                ).stream().collect(Collectors.toMap(
+                        MarketData::getTimestamp,
+                        Function.identity()
+                ));
+
+
         for (MarketDataDTO dto : marketDataDTOs) {
-            Optional<MarketData> existingRecord = 
-                marketDataRepository.findByAssetAndTimestamp(
-                    asset, dto.getTimestamp()
-                );
+            MarketData marketData = existingRecords.get(dto.getTimestamp());
 
-            MarketData marketData;
-
-            if (existingRecord.isPresent()) {
-                marketData = existingRecord.get();
-
+            if (marketData != null) {
                 marketData.updateMarketValues(
-                    dto.getOpen(), 
-                    dto.getHigh(), 
-                    dto.getLow(), 
-                    dto.getClose(), 
-                    dto.getVolume()
+                        dto.getOpen(),
+                        dto.getHigh(),
+                        dto.getLow(),
+                        dto.getClose(),
+                        dto.getVolume()
                 );
             } else {
                 marketData = new MarketData(
-                    dto.getOpen(),
-                    dto.getHigh(),
-                    dto.getLow(),
-                    dto.getClose(),
-                    dto.getVolume(),
-                    asset,
-                    dto.getTimestamp()
+                        dto.getOpen(),
+                        dto.getHigh(),
+                        dto.getLow(),
+                        dto.getClose(),
+                        dto.getVolume(),
+                        asset,
+                        dto.getTimestamp()
                 );
             }
-            
+
             marketDataList.add(marketData);
         }
 
