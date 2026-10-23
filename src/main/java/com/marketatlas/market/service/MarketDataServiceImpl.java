@@ -16,10 +16,6 @@ import java.util.Optional;
 import java.time.LocalDate;
 import java.util.ArrayList;
 
-import java.util.Map;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-
 
 @Service
 public class MarketDataServiceImpl implements MarketDataService {
@@ -31,13 +27,19 @@ public class MarketDataServiceImpl implements MarketDataService {
     );
 
     private final MarketDataRepository marketDataRepository;
+    private final MarketDataPersistenceService marketDataPersistenceService;
     private final AssetService assetService;
     private final MarketDataClient marketDataClient;
 
-    public MarketDataServiceImpl(MarketDataRepository marketDataRepository, AssetService assetService, MarketDataClient marketDataClient) {
+    public MarketDataServiceImpl(
+            MarketDataRepository marketDataRepository,
+            AssetService assetService,
+            MarketDataClient marketDataClient,
+            MarketDataPersistenceService marketDataPersistenceService) {
         this.marketDataRepository = marketDataRepository;
         this.assetService = assetService;
         this.marketDataClient = marketDataClient;
+        this.marketDataPersistenceService = marketDataPersistenceService;
     }
 
     @Override
@@ -55,110 +57,80 @@ public class MarketDataServiceImpl implements MarketDataService {
         return marketDataRepository.findById(id);
     }
 
+
     @Override
-    public List<MarketDataHistoryResponseDTO> fetchHistoricalData(String symbol, LocalDate startDate, LocalDate endDate, String interval) {
+    public List<MarketDataHistoryResponseDTO> fetchHistoricalData(
+            String symbol,
+            LocalDate startDate,
+            LocalDate endDate,
+            String interval) {
 
         if (interval == null || !SUPPORTED_INTERVALS.contains(interval)) {
             throw new IllegalArgumentException(
-                "Unsupported interval: " + interval
+                    "Unsupported interval: " + interval
             );
         }
 
-        if (startDate != null && endDate != null && startDate.isAfter(endDate)) {
+        if (startDate != null && endDate != null
+                && startDate.isAfter(endDate)) {
             throw new IllegalArgumentException(
                     "startDate must be before or equal to endDate"
             );
         }
-        
+
         Asset asset = assetService.findAssetBySymbol(symbol)
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Asset not found: " + symbol
                 ));
 
         List<MarketDataDTO> marketDataDTOs =
-            marketDataClient.getHistoricalData(
-                symbol,
-                startDate,
-                endDate,
-                interval
-            );
+                marketDataClient.getHistoricalData(
+                        symbol,
+                        startDate,
+                        endDate,
+                        interval
+                );
 
         Set<LocalDate> timestamps = new HashSet<>();
 
         for (MarketDataDTO dto : marketDataDTOs) {
             if (!timestamps.add(dto.getTimestamp())) {
                 throw new IllegalArgumentException(
-                        "Duplicate market data timestamp: " + dto.getTimestamp()
+                        "Duplicate market data timestamp: "
+                                + dto.getTimestamp()
                 );
             }
         }
-
-        List<MarketData> marketDataList = new ArrayList<>();
 
         if (marketDataDTOs.isEmpty()) {
             return new ArrayList<>();
         }
 
-        List<LocalDate> requestedTimestamps = marketDataDTOs.stream()
-                .map(MarketDataDTO::getTimestamp)
-                .toList();
-
-        Map<LocalDate, MarketData> existingRecords =
-                marketDataRepository.findByAssetAndTimestampIn(
+        List<MarketData> marketDataList =
+                marketDataPersistenceService.persistHistoricalData(
                         asset,
-                        requestedTimestamps
-                ).stream().collect(Collectors.toMap(
-                        MarketData::getTimestamp,
-                        Function.identity()
-                ));
-
-
-        for (MarketDataDTO dto : marketDataDTOs) {
-            MarketData marketData = existingRecords.get(dto.getTimestamp());
-
-            if (marketData != null) {
-                marketData.updateMarketValues(
-                        dto.getOpen(),
-                        dto.getHigh(),
-                        dto.getLow(),
-                        dto.getClose(),
-                        dto.getVolume()
+                        marketDataDTOs
                 );
-            } else {
-                marketData = new MarketData(
-                        dto.getOpen(),
-                        dto.getHigh(),
-                        dto.getLow(),
-                        dto.getClose(),
-                        dto.getVolume(),
-                        asset,
-                        dto.getTimestamp()
-                );
-            }
 
-            marketDataList.add(marketData);
-        }
+        List<MarketDataHistoryResponseDTO> responseList =
+                new ArrayList<>();
 
-        marketDataRepository.saveAll(marketDataList);
-
-        List<MarketDataHistoryResponseDTO> responseList = new ArrayList<>();
-        
         for (MarketData marketData : marketDataList) {
-        
             MarketDataHistoryResponseDTO response =
-                new MarketDataHistoryResponseDTO(
-                    symbol,
-                    marketData.getOpen(),
-                    marketData.getHigh(),
-                    marketData.getLow(),
-                    marketData.getClose(),
-                    marketData.getVolume(),
-                    marketData.getTimestamp()
-                );
-        
+                    new MarketDataHistoryResponseDTO(
+                            symbol,
+                            marketData.getOpen(),
+                            marketData.getHigh(),
+                            marketData.getLow(),
+                            marketData.getClose(),
+                            marketData.getVolume(),
+                            marketData.getTimestamp()
+                    );
+
             responseList.add(response);
         }
 
         return responseList;
     }
+
 }

@@ -36,8 +36,11 @@ class MarketDataServiceTest {
     private MarketDataRepository marketDataRepository;
 
     @Mock
+    private MarketDataPersistenceService marketDataPersistenceService;
+
+    @Mock
     private AssetService assetService;
-    
+
     @Mock
     private MarketDataClient marketDataClient;
 
@@ -46,7 +49,7 @@ class MarketDataServiceTest {
     @BeforeEach
     void setUp() {
         marketDataService =
-            new MarketDataServiceImpl(marketDataRepository, assetService, marketDataClient);
+            new MarketDataServiceImpl(marketDataRepository, assetService, marketDataClient, marketDataPersistenceService);
     }
 
     @Test
@@ -180,22 +183,22 @@ class MarketDataServiceTest {
 
     @Test
     void shouldFetchHistoricalData() {
-    
+
         Issuer appleIssuer = new Issuer(
             "Apple Inc.",
             "United States"
         );
-    
+
         Asset apple = new Asset(
             "Apple",
             "AAPL",
             AssetClass.EQUITY,
             appleIssuer
         );
-    
+
         LocalDate startDate = LocalDate.of(2026, 9, 29);
         LocalDate endDate = LocalDate.of(2026, 10, 2);
-    
+
         MarketDataDTO firstDTO = new MarketDataDTO(
             254.80,
             255.30,
@@ -204,7 +207,7 @@ class MarketDataServiceTest {
             183421.0,
             LocalDate.of(2026, 10, 1)
         );
-    
+
         MarketDataDTO secondDTO = new MarketDataDTO(
             255.10,
             255.50,
@@ -213,20 +216,35 @@ class MarketDataServiceTest {
             142310.0,
             LocalDate.of(2026, 10, 2)
         );
-    
+
         List<MarketDataDTO> marketDataDTOs =
             List.of(firstDTO, secondDTO);
-    
+
         when(assetService.findAssetBySymbol("AAPL"))
             .thenReturn(Optional.of(apple));
-    
+
         when(marketDataClient.getHistoricalData(
             "AAPL",
             startDate,
             endDate,
             "1day"
         )).thenReturn(marketDataDTOs);
-    
+
+        MarketData firstRecord = new MarketData(
+                254.80, 255.30, 254.60, 255.10, 183421.0,
+                apple, LocalDate.of(2026, 10, 1)
+        );
+
+        MarketData secondRecord = new MarketData(
+                255.10, 255.50, 254.90, 255.42, 142310.0,
+                apple, LocalDate.of(2026, 10, 2)
+        );
+
+        when(marketDataPersistenceService.persistHistoricalData(
+                apple,
+                marketDataDTOs
+        )).thenReturn(List.of(firstRecord, secondRecord));
+
         List<MarketDataHistoryResponseDTO> result =
             marketDataService.fetchHistoricalData(
                 "AAPL",
@@ -234,9 +252,9 @@ class MarketDataServiceTest {
                 endDate,
                 "1day"
             );
-    
+
         assertEquals(2, result.size());
-    
+
         assertEquals("AAPL", result.get(0).getSymbol());
         assertEquals(254.80, result.get(0).getOpen());
         assertEquals(255.30, result.get(0).getHigh());
@@ -247,16 +265,16 @@ class MarketDataServiceTest {
             LocalDate.of(2026, 10, 1),
             result.get(0).getTimestamp()
         );
-    
+
         assertEquals("AAPL", result.get(1).getSymbol());
         assertEquals(
             LocalDate.of(2026, 10, 2),
             result.get(1).getTimestamp()
         );
-    
+
         verify(assetService)
             .findAssetBySymbol("AAPL");
-    
+
         verify(marketDataClient)
             .getHistoricalData(
                 "AAPL",
@@ -264,9 +282,12 @@ class MarketDataServiceTest {
                 endDate,
                 "1day"
             );
-    
-        verify(marketDataRepository)
-            .saveAll(org.mockito.ArgumentMatchers.anyList());
+
+        verify(marketDataPersistenceService)
+                .persistHistoricalData(
+                        apple,
+                        marketDataDTOs
+                );
     }
 
     @Test
@@ -290,95 +311,55 @@ class MarketDataServiceTest {
 
         assertTrue(result.isEmpty());
 
-        verify(marketDataRepository, never())
-                .findByAssetAndTimestampIn(
-                        org.mockito.ArgumentMatchers.eq(apple),
-                        org.mockito.ArgumentMatchers.anyCollection()
+        verify(marketDataPersistenceService, never())
+                .persistHistoricalData(
+                        org.mockito.ArgumentMatchers.any(Asset.class),
+                        org.mockito.ArgumentMatchers.anyList()
                 );
-
-        verify(marketDataRepository, never())
-                .saveAll(anyList());
     }
-    
+
     @Test
-    void shouldUpdateExistingMarketDataInsteadOfCreatingDuplicate() {
-        Issuer appleIssuer = new Issuer(
-            "Apple Inc.",
-            "United States"
-        );
-    
-        Asset apple = new Asset(
-            "Apple",
-            "AAPL",
-            AssetClass.EQUITY,
-            appleIssuer
-        );
-    
+    void shouldDelegateExistingMarketDataPersistence() {
+        Issuer appleIssuer = new Issuer("Apple Inc.", "United States");
+        Asset apple = new Asset("Apple", "AAPL", AssetClass.EQUITY, appleIssuer);
+
         LocalDate date = LocalDate.of(2026, 10, 1);
-    
-        MarketData existingRecord = new MarketData(
-            250.00,
-            252.00,
-            249.00,
-            251.00,
-            100000.0,
-            apple,
-            date
-        );
-    
+
         MarketDataDTO updatedDTO = new MarketDataDTO(
-            254.80,
-            255.30,
-            254.60,
-            255.10,
-            183421.0,
-            date
+                254.80, 255.30, 254.60, 255.10, 183421.0, date
         );
-    
+
+        MarketData updatedRecord = new MarketData(
+                254.80, 255.30, 254.60, 255.10, 183421.0,
+                apple, date
+        );
+
+        List<MarketDataDTO> providerData = List.of(updatedDTO);
+
         when(assetService.findAssetBySymbol("AAPL"))
-            .thenReturn(Optional.of(apple));
-    
+                .thenReturn(Optional.of(apple));
+
         when(marketDataClient.getHistoricalData(
-            "AAPL",
-            date,
-            date,
-            "1day"
-        )).thenReturn(List.of(updatedDTO));
+                "AAPL", date, date, "1day"
+        )).thenReturn(providerData);
 
-        when(marketDataRepository.findByAssetAndTimestampIn(
-                apple,
-                List.of(date)
-        )).thenReturn(List.of(existingRecord));
-    
+        when(marketDataPersistenceService.persistHistoricalData(
+                apple, providerData
+        )).thenReturn(List.of(updatedRecord));
+
         List<MarketDataHistoryResponseDTO> result =
-            marketDataService.fetchHistoricalData(
-                "AAPL",
-                date,
-                date,
-                "1day"
-            );
-
-        assertEquals(254.80, existingRecord.getOpen());
-        assertEquals(255.30, existingRecord.getHigh());
-        assertEquals(254.60, existingRecord.getLow());
-        assertEquals(255.10, existingRecord.getClose());
-        assertEquals(183421.0, existingRecord.getVolume());
+                marketDataService.fetchHistoricalData(
+                        "AAPL", date, date, "1day"
+                );
 
         assertEquals(1, result.size());
         assertEquals(255.10, result.get(0).getClose());
+        assertEquals(date, result.get(0).getTimestamp());
 
-        verify(marketDataRepository)
-                .findByAssetAndTimestampIn(apple, List.of(date));
+        verify(marketDataPersistenceService)
+                .persistHistoricalData(apple, providerData);
 
-        org.mockito.ArgumentCaptor<List<MarketData>> captor =
-            org.mockito.ArgumentCaptor.forClass(List.class);
-    
-        verify(marketDataRepository).saveAll(captor.capture());
-    
-        List<MarketData> savedRecords = captor.getValue();
-    
-        assertEquals(1, savedRecords.size());
-        assertTrue(savedRecords.get(0) == existingRecord);
+        verifyNoInteractions(marketDataRepository);
     }
 
     @Test
@@ -404,7 +385,8 @@ class MarketDataServiceTest {
         verifyNoInteractions(
                 assetService,
                 marketDataClient,
-                marketDataRepository
+                marketDataRepository,
+                marketDataPersistenceService
         );
     }
 
@@ -419,13 +401,14 @@ class MarketDataServiceTest {
                 "abc"
             )
         );
-    
+
         assertEquals("Unsupported interval: abc", exception.getMessage());
-    
+
         verifyNoInteractions(
             assetService,
             marketDataClient,
-            marketDataRepository
+            marketDataRepository,
+            marketDataPersistenceService
         );
     }
 
@@ -457,6 +440,10 @@ class MarketDataServiceTest {
                 )
         );
 
-        verify(marketDataRepository, never()).saveAll(org.mockito.ArgumentMatchers.anyList());
+        verify(marketDataPersistenceService, never())
+                .persistHistoricalData(
+                        org.mockito.ArgumentMatchers.any(Asset.class),
+                        org.mockito.ArgumentMatchers.anyList()
+                );
     }
 }
