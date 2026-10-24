@@ -29,6 +29,16 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.marketatlas.common.exception.MarketDataProviderException;
+import com.marketatlas.common.exception.ResourceNotFoundException;
+import org.springframework.test.util.ReflectionTestUtils;
+
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneOffset;
+
+import static org.mockito.ArgumentMatchers.any;
+
 @ExtendWith(MockitoExtension.class)
 class MarketDataServiceTest {
 
@@ -36,7 +46,7 @@ class MarketDataServiceTest {
     private MarketDataRepository marketDataRepository;
 
     @Mock
-    private MarketDataPersistenceService marketDataPersistenceService;
+    private MarketDataCoverageService coverageService;
 
     @Mock
     private AssetService assetService;
@@ -46,10 +56,45 @@ class MarketDataServiceTest {
 
     private MarketDataServiceImpl marketDataService;
 
+    private static final LocalDate TODAY = LocalDate.of(2026, 10, 24);
+
+    private Asset apple;
+
     @BeforeEach
     void setUp() {
-        marketDataService =
-            new MarketDataServiceImpl(marketDataRepository, assetService, marketDataClient, marketDataPersistenceService);
+        Clock clock = Clock.fixed(
+                Instant.parse("2026-10-24T12:00:00Z"), ZoneOffset.UTC);
+
+        marketDataService = new MarketDataServiceImpl(
+                marketDataRepository, assetService, marketDataClient,
+                coverageService, clock);
+
+        apple = new Asset("Apple", AssetClass.EQUITY,
+                new Issuer("Apple Inc.", "United States"));
+        ReflectionTestUtils.setField(apple, "id", 7L);
+    }
+
+    private static DateRange range(LocalDate from, LocalDate to) {
+        return new DateRange(from, to);
+    }
+
+    private static LocalDate oct(int day) {
+        return LocalDate.of(2026, 10, day);
+    }
+
+    private MarketData row(double close, LocalDate date) {
+        return new MarketData(close - 1, close + 1, close - 2, close,
+                1000.0, apple, date);
+    }
+
+    private MarketDataDTO dto(double close, LocalDate date) {
+        return new MarketDataDTO(close - 1, close + 1, close - 2, close,
+                1000.0, date);
+    }
+
+    private void stubApple() {
+        when(assetService.findAssetBySymbol("AAPL"))
+                .thenReturn(Optional.of(apple));
     }
 
     @Test
@@ -179,267 +224,178 @@ class MarketDataServiceTest {
     }
 
     @Test
-    void shouldFetchHistoricalData() {
+    void shouldFetchMissingRangeThenServeFromDatabase() {
+        stubApple();
+        List<MarketDataDTO> fetched = List.of(dto(101, oct(1)), dto(102, oct(2)));
 
-        Issuer appleIssuer = new Issuer(
-            "Apple Inc.",
-            "United States"
-        );
-
-        Asset apple = new Asset(
-            "Apple",
-            AssetClass.EQUITY,
-            appleIssuer
-        );
-
-        LocalDate startDate = LocalDate.of(2026, 9, 29);
-        LocalDate endDate = LocalDate.of(2026, 10, 2);
-
-        MarketDataDTO firstDTO = new MarketDataDTO(
-            254.80,
-            255.30,
-            254.60,
-            255.10,
-            183421.0,
-            LocalDate.of(2026, 10, 1)
-        );
-
-        MarketDataDTO secondDTO = new MarketDataDTO(
-            255.10,
-            255.50,
-            254.90,
-            255.42,
-            142310.0,
-            LocalDate.of(2026, 10, 2)
-        );
-
-        List<MarketDataDTO> marketDataDTOs =
-            List.of(firstDTO, secondDTO);
-
-        when(assetService.findAssetBySymbol("AAPL"))
-            .thenReturn(Optional.of(apple));
-
-        when(marketDataClient.getHistoricalData(
-            "AAPL",
-            startDate,
-            endDate,
-            "1day"
-        )).thenReturn(marketDataDTOs);
-
-        MarketData firstRecord = new MarketData(
-                254.80, 255.30, 254.60, 255.10, 183421.0,
-                apple, LocalDate.of(2026, 10, 1)
-        );
-
-        MarketData secondRecord = new MarketData(
-                255.10, 255.50, 254.90, 255.42, 142310.0,
-                apple, LocalDate.of(2026, 10, 2)
-        );
-
-        when(marketDataPersistenceService.persistHistoricalData(
-                apple,
-                marketDataDTOs
-        )).thenReturn(List.of(firstRecord, secondRecord));
+        when(coverageService.findMissingRanges(7L, range(oct(1), oct(2))))
+                .thenReturn(List.of(range(oct(1), oct(2))));
+        when(marketDataClient.getHistoricalData("AAPL", oct(1), oct(2), "1day"))
+                .thenReturn(fetched);
+        when(marketDataRepository.findByAssetAndTimestampBetweenOrderByTimestampAsc(
+                apple, oct(1), oct(2)))
+                .thenReturn(List.of(row(101, oct(1)), row(102, oct(2))));
 
         List<MarketDataHistoryResponseDTO> result =
-            marketDataService.fetchHistoricalData(
-                "AAPL",
-                startDate,
-                endDate,
-                "1day"
-            );
+                marketDataService.fetchHistoricalData("AAPL", oct(1), oct(2), "1day");
 
         assertEquals(2, result.size());
-
         assertEquals("AAPL", result.get(0).getSymbol());
-        assertEquals(254.80, result.get(0).getOpen());
-        assertEquals(255.30, result.get(0).getHigh());
-        assertEquals(254.60, result.get(0).getLow());
-        assertEquals(255.10, result.get(0).getClose());
-        assertEquals(183421.0, result.get(0).getVolume());
-        assertEquals(
-            LocalDate.of(2026, 10, 1),
-            result.get(0).getTimestamp()
-        );
+        assertEquals(101.0, result.get(0).getClose());
+        assertEquals(oct(1), result.get(0).getTimestamp());
+        assertEquals(oct(2), result.get(1).getTimestamp());
 
-        assertEquals("AAPL", result.get(1).getSymbol());
-        assertEquals(
-            LocalDate.of(2026, 10, 2),
-            result.get(1).getTimestamp()
-        );
-
-        verify(assetService)
-            .findAssetBySymbol("AAPL");
-
-        verify(marketDataClient)
-            .getHistoricalData(
-                "AAPL",
-                startDate,
-                endDate,
-                "1day"
-            );
-
-        verify(marketDataPersistenceService)
-                .persistHistoricalData(
-                        apple,
-                        marketDataDTOs
-                );
+        verify(coverageService).saveFetchedRange(7L, range(oct(1), oct(2)), fetched);
     }
 
     @Test
-    void shouldReturnEmptyListWhenProviderReturnsNoHistoricalData() {
-        Issuer appleIssuer = new Issuer("Apple Inc.", "United States");
-        Asset apple = new Asset("Apple", AssetClass.EQUITY, appleIssuer);
+    void shouldNormalizeSymbolBeforeLookupAndProviderCall() {
+        stubApple();
+        when(coverageService.findMissingRanges(7L, range(oct(1), oct(1))))
+                .thenReturn(List.of(range(oct(1), oct(1))));
+        when(marketDataClient.getHistoricalData("AAPL", oct(1), oct(1), "1day"))
+                .thenReturn(List.of());
 
-        LocalDate date = LocalDate.of(2026, 10, 1);
+        marketDataService.fetchHistoricalData(" aapl ", oct(1), oct(1), "1day");
 
-        when(assetService.findAssetBySymbol("AAPL"))
-                .thenReturn(Optional.of(apple));
-
-        when(marketDataClient.getHistoricalData(
-                "AAPL", date, date, "1day"
-        )).thenReturn(List.of());
-
-        List<MarketDataHistoryResponseDTO> result =
-                marketDataService.fetchHistoricalData(
-                        "AAPL", date, date, "1day"
-                );
-
-        assertTrue(result.isEmpty());
-
-        verify(marketDataPersistenceService, never())
-                .persistHistoricalData(
-                        org.mockito.ArgumentMatchers.any(Asset.class),
-                        org.mockito.ArgumentMatchers.anyList()
-                );
+        verify(assetService).findAssetBySymbol("AAPL");
+        verify(marketDataClient).getHistoricalData("AAPL", oct(1), oct(1), "1day");
     }
 
     @Test
-    void shouldDelegateExistingMarketDataPersistence() {
-        Issuer appleIssuer = new Issuer("Apple Inc.", "United States");
-        Asset apple = new Asset("Apple", AssetClass.EQUITY, appleIssuer);
-
-        LocalDate date = LocalDate.of(2026, 10, 1);
-
-        MarketDataDTO updatedDTO = new MarketDataDTO(
-                254.80, 255.30, 254.60, 255.10, 183421.0, date
-        );
-
-        MarketData updatedRecord = new MarketData(
-                254.80, 255.30, 254.60, 255.10, 183421.0,
-                apple, date
-        );
-
-        List<MarketDataDTO> providerData = List.of(updatedDTO);
-
-        when(assetService.findAssetBySymbol("AAPL"))
-                .thenReturn(Optional.of(apple));
-
-        when(marketDataClient.getHistoricalData(
-                "AAPL", date, date, "1day"
-        )).thenReturn(providerData);
-
-        when(marketDataPersistenceService.persistHistoricalData(
-                apple, providerData
-        )).thenReturn(List.of(updatedRecord));
+    void shouldNotCallProviderWhenRangeIsFullyCovered() {
+        stubApple();
+        when(coverageService.findMissingRanges(7L, range(oct(1), oct(2))))
+                .thenReturn(List.of());
+        when(marketDataRepository.findByAssetAndTimestampBetweenOrderByTimestampAsc(
+                apple, oct(1), oct(2)))
+                .thenReturn(List.of(row(101, oct(1))));
 
         List<MarketDataHistoryResponseDTO> result =
-                marketDataService.fetchHistoricalData(
-                        "AAPL", date, date, "1day"
-                );
+                marketDataService.fetchHistoricalData("AAPL", oct(1), oct(2), "1day");
 
         assertEquals(1, result.size());
-        assertEquals(255.10, result.get(0).getClose());
-        assertEquals(date, result.get(0).getTimestamp());
+        verifyNoInteractions(marketDataClient);
+        verify(coverageService, never()).saveFetchedRange(any(), any(), any());
+    }
 
-        verify(marketDataPersistenceService)
-                .persistHistoricalData(apple, providerData);
+    @Test
+    void shouldMakeOneProviderCallSpanningAllGaps() {
+        stubApple();
+        List<MarketDataDTO> fetched = List.of(dto(101, oct(1)));
 
-        verifyNoInteractions(marketDataRepository);
+        when(coverageService.findMissingRanges(7L, range(oct(1), oct(10))))
+                .thenReturn(List.of(range(oct(1), oct(3)), range(oct(8), oct(10))));
+        when(marketDataClient.getHistoricalData("AAPL", oct(1), oct(10), "1day"))
+                .thenReturn(fetched);
+
+        marketDataService.fetchHistoricalData("AAPL", oct(1), oct(10), "1day");
+
+        verify(marketDataClient).getHistoricalData("AAPL", oct(1), oct(10), "1day");
+        verify(coverageService).saveFetchedRange(7L, range(oct(1), oct(10)), fetched);
+    }
+
+    @Test
+    void shouldRecordCoverageEvenWhenProviderReturnsNoRows() {
+        stubApple();
+        when(coverageService.findMissingRanges(7L, range(oct(17), oct(18))))
+                .thenReturn(List.of(range(oct(17), oct(18))));
+        when(marketDataClient.getHistoricalData("AAPL", oct(17), oct(18), "1day"))
+                .thenReturn(List.of());
+
+        List<MarketDataHistoryResponseDTO> result =
+                marketDataService.fetchHistoricalData("AAPL", oct(17), oct(18), "1day");
+
+        assertTrue(result.isEmpty());
+        verify(coverageService).saveFetchedRange(7L, range(oct(17), oct(18)), List.of());
+    }
+
+    @Test
+    void shouldClampFutureEndDateToToday() {
+        stubApple();
+        when(coverageService.findMissingRanges(7L, range(oct(20), TODAY)))
+                .thenReturn(List.of());
+
+        marketDataService.fetchHistoricalData(
+                "AAPL", oct(20), LocalDate.of(2026, 12, 31), "1day");
+
+        verify(coverageService).findMissingRanges(7L, range(oct(20), TODAY));
+        verify(marketDataRepository)
+                .findByAssetAndTimestampBetweenOrderByTimestampAsc(apple, oct(20), TODAY);
+    }
+
+    @Test
+    void shouldReturnEmptyWhenWholeRangeIsInTheFuture() {
+        stubApple();
+
+        List<MarketDataHistoryResponseDTO> result =
+                marketDataService.fetchHistoricalData(
+                        "AAPL", LocalDate.of(2026, 11, 1),
+                        LocalDate.of(2026, 11, 5), "1day");
+
+        assertTrue(result.isEmpty());
+        verifyNoInteractions(coverageService, marketDataClient, marketDataRepository);
+    }
+
+    @Test
+    void shouldReturnNotFoundForUnknownSymbol() {
+        when(assetService.findAssetBySymbol("NOPE")).thenReturn(Optional.empty());
+
+        assertThrows(ResourceNotFoundException.class,
+                () -> marketDataService.fetchHistoricalData("nope", oct(1), oct(2), "1day"));
+
+        verifyNoInteractions(coverageService, marketDataClient, marketDataRepository);
     }
 
     @Test
     void shouldRejectInvalidDateRangeBeforeCallingDependencies() {
-        LocalDate startDate = LocalDate.of(2026, 10, 5);
-        LocalDate endDate = LocalDate.of(2026, 10, 1);
-
         IllegalArgumentException exception = assertThrows(
                 IllegalArgumentException.class,
-                () -> marketDataService.fetchHistoricalData(
-                        "AAPL",
-                        startDate,
-                        endDate,
-                        "1day"
-                )
-        );
+                () -> marketDataService.fetchHistoricalData("AAPL", oct(5), oct(1), "1day"));
 
-        assertEquals(
-                "startDate must be before or equal to endDate",
-                exception.getMessage()
-        );
-
-        verifyNoInteractions(
-                assetService,
-                marketDataClient,
-                marketDataRepository,
-                marketDataPersistenceService
-        );
+        assertEquals("startDate must be before or equal to endDate", exception.getMessage());
+        verifyNoInteractions(assetService, marketDataClient, marketDataRepository, coverageService);
     }
 
     @Test
-    void shouldRejectUnsupportedIntervalBeforeCallingDependencies() {
+    void shouldRejectNonDailyIntervalsBeforeCallingDependencies() {
         IllegalArgumentException exception = assertThrows(
-            IllegalArgumentException.class,
-            () -> marketDataService.fetchHistoricalData(
-                "AAPL",
-                LocalDate.of(2026, 10, 1),
-                LocalDate.of(2026, 10, 5),
-                "abc"
-            )
-        );
+                IllegalArgumentException.class,
+                () -> marketDataService.fetchHistoricalData("AAPL", oct(1), oct(5), "1week"));
 
-        assertEquals("Unsupported interval: abc", exception.getMessage());
-
-        verifyNoInteractions(
-            assetService,
-            marketDataClient,
-            marketDataRepository,
-            marketDataPersistenceService
-        );
+        assertEquals("Unsupported interval: 1week. Only 1day is currently supported.",
+                exception.getMessage());
+        verifyNoInteractions(assetService, marketDataClient, marketDataRepository, coverageService);
     }
 
     @Test
-    void shouldRejectDuplicateTimestampsInProviderResponse() {
-        Issuer appleIssuer = new Issuer("Apple Inc.", "United States");
-        Asset apple = new Asset("Apple", AssetClass.EQUITY, appleIssuer);
-
-        LocalDate date = LocalDate.of(2026, 10, 1);
-
-        MarketDataDTO firstDTO = new MarketDataDTO(
-                250.0, 255.0, 249.0, 252.0, 100000.0, date
-        );
-        MarketDataDTO duplicateDTO = new MarketDataDTO(
-                251.0, 256.0, 250.0, 253.0, 110000.0, date
-        );
-
-        when(assetService.findAssetBySymbol("AAPL"))
-                .thenReturn(Optional.of(apple));
-
-        when(marketDataClient.getHistoricalData(
-                "AAPL", date, date, "1day"
-        )).thenReturn(List.of(firstDTO, duplicateDTO));
-
-        assertThrows(
-                IllegalArgumentException.class,
+    void shouldRejectRangesLongerThanTenYears() {
+        assertThrows(IllegalArgumentException.class,
                 () -> marketDataService.fetchHistoricalData(
-                        "AAPL", date, date, "1day"
-                )
-        );
+                        "AAPL", LocalDate.of(2015, 1, 1), LocalDate.of(2026, 1, 1), "1day"));
 
-        verify(marketDataPersistenceService, never())
-                .persistHistoricalData(
-                        org.mockito.ArgumentMatchers.any(Asset.class),
-                        org.mockito.ArgumentMatchers.anyList()
-                );
+        verifyNoInteractions(assetService, marketDataClient, marketDataRepository, coverageService);
+    }
+
+    @Test
+    void shouldRejectBlankSymbol() {
+        assertThrows(IllegalArgumentException.class,
+                () -> marketDataService.fetchHistoricalData("  ", oct(1), oct(2), "1day"));
+
+        verifyNoInteractions(assetService, marketDataClient, marketDataRepository, coverageService);
+    }
+
+    @Test
+    void shouldTreatDuplicateProviderTimestampsAsProviderFault() {
+        stubApple();
+        when(coverageService.findMissingRanges(7L, range(oct(1), oct(1))))
+                .thenReturn(List.of(range(oct(1), oct(1))));
+        when(marketDataClient.getHistoricalData("AAPL", oct(1), oct(1), "1day"))
+                .thenReturn(List.of(dto(101, oct(1)), dto(102, oct(1))));
+
+        assertThrows(MarketDataProviderException.class,
+                () -> marketDataService.fetchHistoricalData("AAPL", oct(1), oct(1), "1day"));
+
+        verify(coverageService, never()).saveFetchedRange(any(), any(), any());
     }
 }
