@@ -15,6 +15,8 @@ import java.util.List;
 @Component
 public class TwelveDataMarketDataClient implements MarketDataClient {
 
+    private static final String NO_DATA_MESSAGE = "No data is available";
+
     @Value("${twelvedata.base-url}")
     private String baseUrl;
     
@@ -51,9 +53,19 @@ public class TwelveDataMarketDataClient implements MarketDataClient {
                     .retrieve()
                     .body(MarketDataResponseDTO.class);
             } catch (RestClientResponseException exception) {
+                String body = exception.getResponseBodyAsString();
+                if (body.length() > 300) {
+                    body = body.substring(0, 300);
+                }
+                if (exception.getStatusCode().value() == 400
+                        && body.contains(NO_DATA_MESSAGE)) {
+                    return List.of();
+                }
+
                 throw new MarketDataProviderException(
-                    "Twelve Data returned an HTTP error.",
-                    exception
+                        "Twelve Data returned an HTTP error: "
+                                + exception.getStatusCode().value() + " " + body,
+                        exception
                 );
             } catch (ResourceAccessException exception) {
             throw new MarketDataProviderException(
@@ -66,6 +78,12 @@ public class TwelveDataMarketDataClient implements MarketDataClient {
                 throw new MarketDataProviderException(
                     "Twelve Data returned an empty response."
                 );
+            }
+
+            if ("error".equalsIgnoreCase(response.getStatus())
+                    && response.getMessage() != null
+                    && response.getMessage().contains(NO_DATA_MESSAGE)) {
+                return List.of();
             }
 
             if ("error".equalsIgnoreCase(response.getStatus())) {
