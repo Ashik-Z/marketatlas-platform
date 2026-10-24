@@ -6,6 +6,9 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.validation.FieldError;
+
 import org.springframework.web.bind.MissingServletRequestParameterException;
 
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
@@ -70,4 +73,38 @@ public class GlobalExceptionHandler {
         return problemDetail;
     }
 
+    @ExceptionHandler(ResourceNotFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public ProblemDetail handleResourceNotFound(ResourceNotFoundException exception) {
+
+        ProblemDetail problemDetail =
+                ProblemDetail.forStatus(HttpStatus.NOT_FOUND);
+
+        problemDetail.setTitle("Not Found");
+        problemDetail.setDetail(exception.getMessage());
+
+        return problemDetail;
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ProblemDetail handleBodyValidation(MethodArgumentNotValidException exception) {
+
+        ProblemDetail problemDetail =
+                ProblemDetail.forStatus(HttpStatus.BAD_REQUEST);
+
+        problemDetail.setTitle("Bad Request");
+        problemDetail.setDetail("The request body is invalid.");
+        problemDetail.setProperty(
+                "errors",
+                exception.getBindingResult().getFieldErrors().stream()
+                        .collect(java.util.stream.Collectors.toMap(
+                                FieldError::getField,
+                                error -> String.valueOf(error.getDefaultMessage()),
+                                (first, second) -> first
+                        ))
+        );
+
+        return problemDetail;
+    }
 }
