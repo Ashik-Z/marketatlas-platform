@@ -1,9 +1,11 @@
+
 package com.marketatlas.market.service;
 
 import com.marketatlas.market.dto.MarketDataDTO;
 import com.marketatlas.market.entity.Asset;
 import com.marketatlas.market.entity.MarketData;
 import com.marketatlas.market.repository.MarketDataRepository;
+import jakarta.persistence.EntityManager;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,10 +20,13 @@ import java.util.stream.Collectors;
 public class MarketDataPersistenceService {
 
     private final MarketDataRepository marketDataRepository;
+    private final EntityManager entityManager;
 
     public MarketDataPersistenceService(
-            MarketDataRepository marketDataRepository) {
+            MarketDataRepository marketDataRepository,
+            EntityManager entityManager) {
         this.marketDataRepository = marketDataRepository;
+        this.entityManager = entityManager;
     }
 
     @Transactional
@@ -33,47 +38,39 @@ public class MarketDataPersistenceService {
             return new ArrayList<>();
         }
 
+        entityManager.flush();
+
+        for (MarketDataDTO dto : marketDataDTOs) {
+            marketDataRepository.upsertMarketData(
+                    asset.getId(),
+                    dto.getTimestamp(),
+                    dto.getOpen(),
+                    dto.getHigh(),
+                    dto.getLow(),
+                    dto.getClose(),
+                    dto.getVolume()
+            );
+        }
+
         List<LocalDate> requestedTimestamps = marketDataDTOs.stream()
                 .map(MarketDataDTO::getTimestamp)
                 .toList();
 
-        Map<LocalDate, MarketData> existingRecords =
-                marketDataRepository.findByAssetAndTimestampIn(
-                        asset,
-                        requestedTimestamps
-                ).stream().collect(Collectors.toMap(
+        List<MarketData> records = marketDataRepository
+                .findByAssetAndTimestampIn(asset, requestedTimestamps);
+
+        for (MarketData record : records) {
+            entityManager.refresh(record);
+        }
+
+        Map<LocalDate, MarketData> persistedRecords = records.stream()
+                .collect(Collectors.toMap(
                         MarketData::getTimestamp,
                         Function.identity()
                 ));
 
-        List<MarketData> marketDataList = new ArrayList<>();
-
-        for (MarketDataDTO dto : marketDataDTOs) {
-            MarketData marketData = existingRecords.get(dto.getTimestamp());
-
-            if (marketData != null) {
-                marketData.updateMarketValues(
-                        dto.getOpen(),
-                        dto.getHigh(),
-                        dto.getLow(),
-                        dto.getClose(),
-                        dto.getVolume()
-                );
-            } else {
-                marketData = new MarketData(
-                        dto.getOpen(),
-                        dto.getHigh(),
-                        dto.getLow(),
-                        dto.getClose(),
-                        dto.getVolume(),
-                        asset,
-                        dto.getTimestamp()
-                );
-            }
-
-            marketDataList.add(marketData);
-        }
-
-        return marketDataRepository.saveAll(marketDataList);
+        return marketDataDTOs.stream()
+                .map(dto -> persistedRecords.get(dto.getTimestamp()))
+                .toList();
     }
 }
