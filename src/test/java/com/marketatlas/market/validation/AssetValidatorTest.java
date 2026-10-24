@@ -32,7 +32,6 @@ class AssetValidatorTest {
         );
         Asset asset = new Asset(
                 "Apple",
-                "AAPL",
                 AssetClass.EQUITY,
                 apple
         );
@@ -46,7 +45,6 @@ class AssetValidatorTest {
     void equityWithoutIssuerShouldBeInvalid() {
         Asset asset = new Asset(
                 "Apple",
-                "AAPL",
                 AssetClass.EQUITY,
                 null
         );
@@ -60,7 +58,6 @@ class AssetValidatorTest {
     void commodityWithoutIssuerShouldBeValid() {
         Asset asset = new Asset(
                 "Gold",
-                "GOLD",
                 AssetClass.COMMODITY,
                 null
         );
@@ -79,7 +76,6 @@ class AssetValidatorTest {
 
         Asset asset = new Asset(
                 "Gold",
-                "GOLD",
                 AssetClass.COMMODITY,
                 apple
         );

@@ -18,8 +18,7 @@ public class Asset {
     @NotBlank 
     @Column (nullable=false)
     private String name;
-    
-    private String symbol;
+
 
     @NotNull
     @Column (nullable=false)
@@ -30,9 +29,8 @@ public class Asset {
     @JoinColumn(name = "issuer_id")
     private Issuer issuer;
 
-    public Asset(String name, String symbol, AssetClass assetClass, Issuer issuer) {
+    public Asset(String name, AssetClass assetClass, Issuer issuer) {
         this.name = name;
-        this.symbol = symbol;
         this.assetClass = assetClass;
         this.issuer = issuer;
     }
@@ -57,7 +55,4 @@ public class Asset {
         return name;
     }
 
-    public String getSymbol() {
-        return symbol;
-    }
 }

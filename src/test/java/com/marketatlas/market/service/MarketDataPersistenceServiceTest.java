@@ -47,7 +47,7 @@ class MarketDataPersistenceServiceTest {
         );
 
         apple = assetRepository.save(
-                new Asset("Apple", "AAPL", AssetClass.EQUITY, issuer)
+                new Asset("Apple", AssetClass.EQUITY, issuer)
         );
     }
 

@@ -52,7 +52,6 @@ class MarketDataRepositoryTest {
 
         Asset asset = new Asset(
             "Apple",
-            "AAPL",
             AssetClass.EQUITY,
             apple
         );
@@ -90,7 +89,6 @@ class MarketDataRepositoryTest {
 
         Asset asset = new Asset(
             "Apple",
-            "AAPL",
             AssetClass.EQUITY,
             apple
         );
@@ -123,7 +121,7 @@ class MarketDataRepositoryTest {
         Issuer apple = new Issuer("Apple Inc.", "United States");
         issuerRepository.save(apple);
 
-        Asset asset = new Asset("Apple", "AAPL", AssetClass.EQUITY, apple);
+        Asset asset = new Asset("Apple", AssetClass.EQUITY, apple);
         assetRepository.save(asset);
 
         LocalDate timestamp = LocalDate.of(2026, 10, 1);

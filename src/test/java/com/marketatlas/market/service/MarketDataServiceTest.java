@@ -62,7 +62,6 @@ class MarketDataServiceTest {
 
         Asset apple = new Asset(
             "Apple",
-            "AAPL",
             AssetClass.EQUITY,
             appleIssuer
         );
@@ -99,7 +98,6 @@ class MarketDataServiceTest {
 
         Asset apple = new Asset(
             "Apple",
-            "AAPL",
             AssetClass.EQUITY,
             appleIssuer
         );
@@ -151,7 +149,6 @@ class MarketDataServiceTest {
 
         Asset apple = new Asset(
             "Apple",
-            "AAPL",
             AssetClass.EQUITY,
             appleIssuer
         );
@@ -191,7 +188,6 @@ class MarketDataServiceTest {
 
         Asset apple = new Asset(
             "Apple",
-            "AAPL",
             AssetClass.EQUITY,
             appleIssuer
         );
@@ -293,7 +289,7 @@ class MarketDataServiceTest {
     @Test
     void shouldReturnEmptyListWhenProviderReturnsNoHistoricalData() {
         Issuer appleIssuer = new Issuer("Apple Inc.", "United States");
-        Asset apple = new Asset("Apple", "AAPL", AssetClass.EQUITY, appleIssuer);
+        Asset apple = new Asset("Apple", AssetClass.EQUITY, appleIssuer);
 
         LocalDate date = LocalDate.of(2026, 10, 1);
 
@@ -321,7 +317,7 @@ class MarketDataServiceTest {
     @Test
     void shouldDelegateExistingMarketDataPersistence() {
         Issuer appleIssuer = new Issuer("Apple Inc.", "United States");
-        Asset apple = new Asset("Apple", "AAPL", AssetClass.EQUITY, appleIssuer);
+        Asset apple = new Asset("Apple", AssetClass.EQUITY, appleIssuer);
 
         LocalDate date = LocalDate.of(2026, 10, 1);
 
@@ -415,7 +411,7 @@ class MarketDataServiceTest {
     @Test
     void shouldRejectDuplicateTimestampsInProviderResponse() {
         Issuer appleIssuer = new Issuer("Apple Inc.", "United States");
-        Asset apple = new Asset("Apple", "AAPL", AssetClass.EQUITY, appleIssuer);
+        Asset apple = new Asset("Apple", AssetClass.EQUITY, appleIssuer);
 
         LocalDate date = LocalDate.of(2026, 10, 1);
 

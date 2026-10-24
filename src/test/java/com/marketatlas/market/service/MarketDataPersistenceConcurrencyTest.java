@@ -55,7 +55,7 @@ class MarketDataPersistenceConcurrencyTest {
         );
 
         Asset asset = assetRepository.saveAndFlush(
-                new Asset("Concurrency Test", "CTST", AssetClass.EQUITY, issuer)
+                new Asset("Concurrency Test", AssetClass.EQUITY, issuer)
         );
 
         Long assetId = asset.getId();
@@ -159,12 +159,14 @@ class MarketDataPersistenceConcurrencyTest {
 
     @AfterEach
     void cleanUp() {
-        assetRepository.findBySymbol("CTST").ifPresent(asset -> {
-            marketDataRepository.deleteAll(
-                    marketDataRepository.findByAsset(asset)
-            );
-            assetRepository.delete(asset);
-        });
+        assetRepository.findAll().stream()
+                .filter(asset -> asset.getName().equals("Concurrency Test"))
+                .forEach(asset -> {
+                    marketDataRepository.deleteAll(
+                            marketDataRepository.findByAsset(asset)
+                    );
+                    assetRepository.delete(asset);
+                });
 
         issuerRepository.findAll().stream()
                 .filter(issuer -> issuer.getName()

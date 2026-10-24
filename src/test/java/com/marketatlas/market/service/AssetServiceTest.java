@@ -1,5 +1,6 @@
 package com.marketatlas.market.service;
 
+import com.marketatlas.enums.IdentifierScheme;
 import com.marketatlas.market.repository.AssetRepository;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -37,7 +38,6 @@ class AssetServiceTest {
 
         Asset asset = new Asset(
                 "Apple",
-                "AAPL",
                 AssetClass.EQUITY,
                 null
         );
@@ -55,14 +55,12 @@ class AssetServiceTest {
     void shouldFindAssetsByClass() {
         Asset apple = new Asset(
                 "Apple",
-                "AAPL",
                 AssetClass.EQUITY,
                 null
         );
 
         Asset tesla = new Asset(
                 "Tesla",
-                "TSLA",
                 AssetClass.EQUITY,
                 null
             );
@@ -88,7 +86,6 @@ class AssetServiceTest {
     
         Asset apple = new Asset(
             "Apple",
-            "AAPL",
             AssetClass.EQUITY,
             null
         );
@@ -110,21 +107,22 @@ class AssetServiceTest {
     @Test
     void shouldFindAssetBySymbol() {
         Asset apple = new Asset(
-            "Apple",
-            "AAPL",
-            AssetClass.EQUITY,
-            null
+                "Apple",
+                AssetClass.EQUITY,
+                null
         );
-    
-        when(assetRepository.findBySymbol("AAPL"))
-            .thenReturn(Optional.of(apple));
-    
+
+        when(assetRepository.findByIdentifier(
+                IdentifierScheme.TWELVE_DATA_SYMBOL, "AAPL"))
+                .thenReturn(Optional.of(apple));
+
         Optional<Asset> result =
-            assetService.findAssetBySymbol("AAPL");
-    
+                assetService.findAssetBySymbol("AAPL");
+
         assertTrue(result.isPresent());
         assertEquals(apple, result.get());
-    
-        verify(assetRepository).findBySymbol("AAPL");
+
+        verify(assetRepository).findByIdentifier(
+                IdentifierScheme.TWELVE_DATA_SYMBOL, "AAPL");
     }
 }
