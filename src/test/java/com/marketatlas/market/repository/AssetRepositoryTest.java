@@ -7,6 +7,11 @@ import com.marketatlas.market.TestPostgresConfiguration;
 import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase;
 import org.springframework.context.annotation.Import;
 
+import com.marketatlas.enums.IdentifierScheme;
+import com.marketatlas.market.entity.AssetIdentifier;
+import org.springframework.dao.DataIntegrityViolationException;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
@@ -27,6 +32,9 @@ class AssetRepositoryTest {
     private AssetRepository assetRepository;
 
     @Autowired
+    private AssetIdentifierRepository assetIdentifierRepository;
+
+    @Autowired
     private IssuerRepository issuerRepository;
 
     @Test
@@ -44,7 +52,6 @@ class AssetRepositoryTest {
         // Create an equity asset associated with the issuer
         Asset asset = new Asset(
                 "Apple",
-                "AAPL",
                 AssetClass.EQUITY,
                 apple
         );
@@ -75,11 +82,6 @@ class AssetRepositoryTest {
         assertEquals(
             "Apple",
             foundAsset.get().getName()
-        );
-        
-        assertEquals(
-            "AAPL",
-            foundAsset.get().getSymbol()
         );
         
         assertNotNull(foundAsset.get().getIssuer());
@@ -116,21 +118,18 @@ class AssetRepositoryTest {
 
         Asset appleAsset = new Asset(
             "Apple",
-            "AAPL",
             AssetClass.EQUITY,
             apple
         );
 
         Asset teslaAsset = new Asset(
             "Tesla",
-            "TSLA",
             AssetClass.EQUITY,
             tesla
         );
 
         Asset goldAsset = new Asset(
             "Gold",
-            null,
             AssetClass.COMMODITY,
             null
         );
@@ -163,21 +162,18 @@ class AssetRepositoryTest {
 
         Asset appleAsset = new Asset(
             "Apple",
-            "AAPL",
             AssetClass.EQUITY,
             apple
         );
 
         Asset teslaAsset = new Asset(
             "Tesla",
-            "TSLA",
             AssetClass.EQUITY,
             tesla
         );
 
         Asset goldAsset = new Asset(
             "Gold",
-            null,
             AssetClass.COMMODITY,
             null
         );
@@ -208,26 +204,45 @@ class AssetRepositoryTest {
 
 
     @Test
-    void shouldFindAssetBySymbol() {
-        Issuer apple = new Issuer(
-            "Apple Inc.",
-            "United States"
-        );
-    
-        issuerRepository.save(apple);
-    
-        Asset appleAsset = new Asset(
-            "Apple",
-            "AAPL",
-            AssetClass.EQUITY,
-            apple
-        );
-    
-        assetRepository.save(appleAsset);
-    
-        Optional<Asset> asset = assetRepository.findBySymbol("AAPL");
-    
+    void shouldFindAssetByIdentifier() {
+        Issuer apple = issuerRepository.save(
+                new Issuer("Apple Inc.", "United States"));
+        Asset appleAsset = assetRepository.save(
+                new Asset("Apple", AssetClass.EQUITY, apple));
+        assetIdentifierRepository.save(new AssetIdentifier(
+                appleAsset, IdentifierScheme.TWELVE_DATA_SYMBOL, "AAPL"));
+
+        Optional<Asset> asset = assetRepository.findByIdentifier(
+                IdentifierScheme.TWELVE_DATA_SYMBOL, "AAPL");
+
         assertTrue(asset.isPresent());
         assertEquals("Apple", asset.get().getName());
+    }
+
+    @Test
+    void shouldReturnEmptyForUnknownIdentifier() {
+        Optional<Asset> asset = assetRepository.findByIdentifier(
+                IdentifierScheme.TWELVE_DATA_SYMBOL, "NOPE");
+
+        assertTrue(asset.isEmpty());
+    }
+
+    @Test
+    void shouldRejectSameIdentifierOnDifferentAssets() {
+        Issuer apple = issuerRepository.save(
+                new Issuer("Apple Inc.", "United States"));
+        Issuer other = issuerRepository.save(
+                new Issuer("Other Inc.", "United States"));
+        Asset first = assetRepository.save(
+                new Asset("Apple", AssetClass.EQUITY, apple));
+        Asset second = assetRepository.save(
+                new Asset("Other", AssetClass.EQUITY, other));
+
+        assetIdentifierRepository.saveAndFlush(new AssetIdentifier(
+                first, IdentifierScheme.TWELVE_DATA_SYMBOL, "AAPL"));
+
+        assertThrows(DataIntegrityViolationException.class, () ->
+                assetIdentifierRepository.saveAndFlush(new AssetIdentifier(
+                        second, IdentifierScheme.TWELVE_DATA_SYMBOL, "AAPL")));
     }
 }

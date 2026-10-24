@@ -4,6 +4,7 @@ import com.marketatlas.market.entity.Asset;
 import com.marketatlas.enums.AssetClass;
 import com.marketatlas.market.repository.AssetRepository;
 import org.springframework.stereotype.Service;
+import com.marketatlas.enums.IdentifierScheme;
 
 import java.util.List;
 import java.util.Optional;
@@ -34,6 +35,9 @@ public class AssetServiceImpl implements AssetService {
 
     @Override
     public Optional<Asset> findAssetBySymbol(String symbol) {
-        return assetRepository.findBySymbol(symbol);
+        return assetRepository.findByIdentifier(
+                IdentifierScheme.TWELVE_DATA_SYMBOL,
+                symbol
+        );
     }
 }
