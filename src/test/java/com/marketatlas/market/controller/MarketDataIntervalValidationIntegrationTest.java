@@ -30,6 +30,6 @@ class MarketDataIntervalValidationIntegrationTest {
             .andExpect(status().isBadRequest())
             .andExpect(jsonPath("$.title").value("Bad Request"))
             .andExpect(jsonPath("$.detail")
-                .value("Unsupported interval: abc"));
+                .value("Unsupported interval: abc. Only 1day is currently supported."));
     }
 }

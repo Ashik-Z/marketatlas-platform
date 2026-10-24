@@ -25,6 +25,11 @@ public interface MarketDataRepository extends JpaRepository<MarketData, Long> {
             Asset asset,
             Collection<LocalDate> timestamps
     );
+    List<MarketData> findByAssetAndTimestampBetweenOrderByTimestampAsc(
+            Asset asset,
+            LocalDate from,
+            LocalDate to
+    );
 
     @Modifying
     @Query(value = """

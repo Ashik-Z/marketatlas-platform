@@ -9,12 +9,18 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.validation.FieldError;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import org.springframework.web.bind.MissingServletRequestParameterException;
 
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    private static final Logger log =
+            LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     @ExceptionHandler(IllegalArgumentException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
@@ -44,6 +50,8 @@ public class GlobalExceptionHandler {
     @ResponseStatus(HttpStatus.BAD_GATEWAY)
     public ProblemDetail handleMarketDataProviderException(
             MarketDataProviderException exception) {
+
+        log.warn("Market data provider error: {}", exception.getMessage());
     
         ProblemDetail problemDetail =
                 ProblemDetail.forStatus(HttpStatus.BAD_GATEWAY);

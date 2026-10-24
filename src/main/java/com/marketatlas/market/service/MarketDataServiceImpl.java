@@ -1,45 +1,46 @@
 package com.marketatlas.market.service;
 
+import com.marketatlas.common.exception.MarketDataProviderException;
+import com.marketatlas.common.exception.ResourceNotFoundException;
+import com.marketatlas.market.client.MarketDataClient;
+import com.marketatlas.market.dto.MarketDataDTO;
+import com.marketatlas.market.dto.MarketDataHistoryResponseDTO;
 import com.marketatlas.market.entity.Asset;
 import com.marketatlas.market.entity.MarketData;
-import com.marketatlas.market.dto.MarketDataDTO;
-
-import com.marketatlas.market.dto.MarketDataHistoryResponseDTO; 
 import com.marketatlas.market.repository.MarketDataRepository;
-import com.marketatlas.market.client.MarketDataClient;
 import org.springframework.stereotype.Service;
 
-import java.util.Set;
-import java.util.List;
-import java.util.HashSet;
-import java.util.Optional;
+import java.time.Clock;
 import java.time.LocalDate;
-import java.util.ArrayList;
-
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Optional;
+import java.util.Set;
 
 @Service
 public class MarketDataServiceImpl implements MarketDataService {
 
-    private static final Set<String> SUPPORTED_INTERVALS = Set.of(
-        "1min", "5min", "15min", "30min", "45min",
-        "1h", "2h", "4h", "8h",
-        "1day", "1week", "1month"
-    );
+    private static final String SUPPORTED_INTERVAL = "1day";
+    private static final int MAX_RANGE_YEARS = 10;
 
     private final MarketDataRepository marketDataRepository;
-    private final MarketDataPersistenceService marketDataPersistenceService;
+    private final MarketDataCoverageService coverageService;
     private final AssetService assetService;
     private final MarketDataClient marketDataClient;
+    private final Clock clock;
 
     public MarketDataServiceImpl(
             MarketDataRepository marketDataRepository,
             AssetService assetService,
             MarketDataClient marketDataClient,
-            MarketDataPersistenceService marketDataPersistenceService) {
+            MarketDataCoverageService coverageService,
+            Clock clock) {
         this.marketDataRepository = marketDataRepository;
         this.assetService = assetService;
         this.marketDataClient = marketDataClient;
-        this.marketDataPersistenceService = marketDataPersistenceService;
+        this.coverageService = coverageService;
+        this.clock = clock;
     }
 
     @Override
@@ -57,7 +58,6 @@ public class MarketDataServiceImpl implements MarketDataService {
         return marketDataRepository.findById(id);
     }
 
-
     @Override
     public List<MarketDataHistoryResponseDTO> fetchHistoricalData(
             String symbol,
@@ -65,72 +65,92 @@ public class MarketDataServiceImpl implements MarketDataService {
             LocalDate endDate,
             String interval) {
 
-        if (interval == null || !SUPPORTED_INTERVALS.contains(interval)) {
+        if (!SUPPORTED_INTERVAL.equals(interval)) {
             throw new IllegalArgumentException(
                     "Unsupported interval: " + interval
+                            + ". Only " + SUPPORTED_INTERVAL + " is currently supported."
             );
         }
 
-        if (startDate != null && endDate != null
-                && startDate.isAfter(endDate)) {
+        if (startDate == null || endDate == null) {
+            throw new IllegalArgumentException(
+                    "startDate and endDate are required"
+            );
+        }
+
+        if (startDate.isAfter(endDate)) {
             throw new IllegalArgumentException(
                     "startDate must be before or equal to endDate"
             );
         }
 
-        Asset asset = assetService.findAssetBySymbol(symbol)
-                .orElseThrow(() -> new IllegalArgumentException(
-                        "Asset not found: " + symbol
+        if (startDate.plusYears(MAX_RANGE_YEARS).isBefore(endDate)) {
+            throw new IllegalArgumentException(
+                    "The requested range must not exceed "
+                            + MAX_RANGE_YEARS + " years"
+            );
+        }
+
+        if (symbol == null || symbol.isBlank()) {
+            throw new IllegalArgumentException("symbol must not be blank");
+        }
+
+        String normalizedSymbol = symbol.trim().toUpperCase(Locale.ROOT);
+
+        Asset asset = assetService.findAssetBySymbol(normalizedSymbol)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Asset not found: " + normalizedSymbol
                 ));
 
-        List<MarketDataDTO> marketDataDTOs =
-                marketDataClient.getHistoricalData(
-                        symbol,
-                        startDate,
-                        endDate,
-                        interval
-                );
+        LocalDate today = LocalDate.now(clock);
+        LocalDate effectiveEnd = endDate.isAfter(today) ? today : endDate;
 
-        Set<LocalDate> timestamps = new HashSet<>();
+        if (startDate.isAfter(effectiveEnd)) {
+            return List.of();
+        }
 
-        for (MarketDataDTO dto : marketDataDTOs) {
-            if (!timestamps.add(dto.getTimestamp())) {
-                throw new IllegalArgumentException(
-                        "Duplicate market data timestamp: "
+        List<DateRange> missing = coverageService.findMissingRanges(
+                asset.getId(), new DateRange(startDate, effectiveEnd));
+
+        if (!missing.isEmpty()) {
+            // One provider call per request: span from the first gap to the
+            // last. Re-fetching a few covered days is harmless (idempotent
+            // upsert) and keeps us inside the provider's rate limits.
+            DateRange toFetch = new DateRange(
+                    missing.getFirst().start(), missing.getLast().end());
+
+            List<MarketDataDTO> fetched = marketDataClient.getHistoricalData(
+                    normalizedSymbol, toFetch.start(), toFetch.end(), interval);
+
+            rejectDuplicateTimestamps(fetched);
+
+            coverageService.saveFetchedRange(asset.getId(), toFetch, fetched);
+        }
+
+        return marketDataRepository
+                .findByAssetAndTimestampBetweenOrderByTimestampAsc(
+                        asset, startDate, effectiveEnd)
+                .stream()
+                .map(row -> new MarketDataHistoryResponseDTO(
+                        normalizedSymbol,
+                        row.getOpen(),
+                        row.getHigh(),
+                        row.getLow(),
+                        row.getClose(),
+                        row.getVolume(),
+                        row.getTimestamp()))
+                .toList();
+    }
+
+    private void rejectDuplicateTimestamps(List<MarketDataDTO> data) {
+        Set<LocalDate> seen = new HashSet<>();
+        for (MarketDataDTO dto : data) {
+            if (!seen.add(dto.getTimestamp())) {
+                throw new MarketDataProviderException(
+                        "Market data provider returned a duplicate timestamp: "
                                 + dto.getTimestamp()
                 );
             }
         }
-
-        if (marketDataDTOs.isEmpty()) {
-            return new ArrayList<>();
-        }
-
-        List<MarketData> marketDataList =
-                marketDataPersistenceService.persistHistoricalData(
-                        asset,
-                        marketDataDTOs
-                );
-
-        List<MarketDataHistoryResponseDTO> responseList =
-                new ArrayList<>();
-
-        for (MarketData marketData : marketDataList) {
-            MarketDataHistoryResponseDTO response =
-                    new MarketDataHistoryResponseDTO(
-                            symbol,
-                            marketData.getOpen(),
-                            marketData.getHigh(),
-                            marketData.getLow(),
-                            marketData.getClose(),
-                            marketData.getVolume(),
-                            marketData.getTimestamp()
-                    );
-
-            responseList.add(response);
-        }
-
-        return responseList;
     }
-
 }

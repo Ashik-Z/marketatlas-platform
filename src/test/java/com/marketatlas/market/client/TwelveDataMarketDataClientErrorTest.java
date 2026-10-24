@@ -137,11 +137,9 @@ class TwelveDataMarketDataClientErrorTest {
                 "1day"
             )
         );
-    
-        assertEquals(
-            "Twelve Data returned an HTTP error.",
-            exception.getMessage()
-        );
+
+        assertTrue(exception.getMessage()
+                .startsWith("Twelve Data returned an HTTP error: 429"));
     
         assertTrue(exception.getCause() instanceof
             org.springframework.web.client.RestClientResponseException);
@@ -278,6 +276,106 @@ class TwelveDataMarketDataClientErrorTest {
         );
 
         assertTrue(exception.getMessage().contains("invalid market data record"));
+
+        mockServer.verify();
+    }
+
+    @Test
+    void shouldTreatHttp400NoDataResponseAsEmptyResult() {
+        mockServer.expect(requestTo(
+                        org.hamcrest.Matchers.containsString("/time_series")))
+                .andExpect(method(GET))
+                .andRespond(withStatus(HttpStatus.BAD_REQUEST)
+                        .contentType(APPLICATION_JSON)
+                        .body("""
+                {
+                    "code": 400,
+                    "message": "No data is available on the specified dates. Try setting different start/end dates.",
+                    "status": "error",
+                    "meta": {"symbol": "AAPL", "interval": "1day", "exchange": ""}
+                }
+                """));
+
+        assertTrue(client.getHistoricalData(
+                "AAPL",
+                LocalDate.of(2026, 10, 17),
+                LocalDate.of(2026, 10, 18),
+                "1day"
+        ).isEmpty());
+
+        mockServer.verify();
+    }
+
+    @Test
+    void shouldTreatNoDataErrorBodyOnHttp200AsEmptyResult() {
+        mockServer.expect(requestTo(
+                        org.hamcrest.Matchers.containsString("/time_series")))
+                .andExpect(method(GET))
+                .andRespond(withSuccess("""
+                {
+                    "status": "error",
+                    "code": 400,
+                    "message": "No data is available on the specified dates."
+                }
+                """, APPLICATION_JSON));
+
+        assertTrue(client.getHistoricalData(
+                "AAPL",
+                LocalDate.of(2026, 10, 17),
+                LocalDate.of(2026, 10, 18),
+                "1day"
+        ).isEmpty());
+
+        mockServer.verify();
+    }
+
+    @Test
+    void shouldStillRejectOtherHttp400Errors() {
+        mockServer.expect(requestTo(
+                        org.hamcrest.Matchers.containsString("/time_series")))
+                .andExpect(method(GET))
+                .andRespond(withStatus(HttpStatus.BAD_REQUEST)
+                        .contentType(APPLICATION_JSON)
+                        .body("""
+                {"code": 400, "message": "symbol is missing or invalid", "status": "error"}
+                """));
+
+        MarketDataProviderException exception = assertThrows(
+                MarketDataProviderException.class,
+                () -> client.getHistoricalData(
+                        "BAD",
+                        LocalDate.of(2026, 10, 1),
+                        LocalDate.of(2026, 10, 2),
+                        "1day"
+                )
+        );
+
+        assertTrue(exception.getMessage().contains("400"));
+        assertTrue(exception.getMessage().contains("symbol is missing or invalid"));
+
+        mockServer.verify();
+    }
+
+    @Test
+    void shouldTruncateLongProviderErrorBodies() {
+        mockServer.expect(requestTo(
+                        org.hamcrest.Matchers.containsString("/time_series")))
+                .andExpect(method(GET))
+                .andRespond(withStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+                        .contentType(APPLICATION_JSON)
+                        .body("x".repeat(5000)));
+
+        MarketDataProviderException exception = assertThrows(
+                MarketDataProviderException.class,
+                () -> client.getHistoricalData(
+                        "AAPL",
+                        LocalDate.of(2026, 10, 1),
+                        LocalDate.of(2026, 10, 2),
+                        "1day"
+                )
+        );
+
+        assertTrue(exception.getMessage().length() < 400);
 
         mockServer.verify();
     }
