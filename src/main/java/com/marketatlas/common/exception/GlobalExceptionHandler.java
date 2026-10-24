@@ -107,4 +107,17 @@ public class GlobalExceptionHandler {
 
         return problemDetail;
     }
+
+    @ExceptionHandler(DuplicateResourceException.class)
+    @ResponseStatus(HttpStatus.CONFLICT)
+    public ProblemDetail handleDuplicateResource(DuplicateResourceException exception) {
+
+        ProblemDetail problemDetail =
+                ProblemDetail.forStatus(HttpStatus.CONFLICT);
+
+        problemDetail.setTitle("Conflict");
+        problemDetail.setDetail(exception.getMessage());
+
+        return problemDetail;
+    }
 }
