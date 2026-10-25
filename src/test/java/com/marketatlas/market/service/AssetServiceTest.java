@@ -170,4 +170,13 @@ class AssetServiceTest {
         assertTrue(result.isPresent());
         assertEquals(apple, result.get());
     }
+
+    @Test
+    void shouldListAllProviderSymbols() {
+        when(assetIdentifierRepository.findIdentifierValuesByScheme(
+                IdentifierScheme.TWELVE_DATA_SYMBOL))
+                .thenReturn(List.of("AAPL", "MSFT"));
+
+        assertEquals(List.of("AAPL", "MSFT"), assetService.findAllProviderSymbols());
+    }
 }
