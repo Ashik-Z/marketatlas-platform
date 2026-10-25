@@ -1,76 +1,60 @@
-
 package com.marketatlas.market.service;
 
 import com.marketatlas.market.dto.MarketDataDTO;
 import com.marketatlas.market.entity.Asset;
-import com.marketatlas.market.entity.MarketData;
 import com.marketatlas.market.repository.MarketDataRepository;
-import jakarta.persistence.EntityManager;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
-import java.util.stream.Collectors;
+import java.util.TreeMap;
 
 @Service
 public class MarketDataPersistenceService {
 
     private final MarketDataRepository marketDataRepository;
-    private final EntityManager entityManager;
 
-    public MarketDataPersistenceService(
-            MarketDataRepository marketDataRepository,
-            EntityManager entityManager) {
+    public MarketDataPersistenceService(MarketDataRepository marketDataRepository) {
         this.marketDataRepository = marketDataRepository;
-        this.entityManager = entityManager;
     }
 
+    /**
+     * Writes all bars in a single statement and returns the number of rows written.
+     * Bars are de-duplicated by date (last one wins) and written in timestamp order.
+     */
     @Transactional
-    public List<MarketData> persistHistoricalData(
-            Asset asset,
-            List<MarketDataDTO> marketDataDTOs) {
-
+    public int persistHistoricalData(Asset asset, List<MarketDataDTO> marketDataDTOs) {
         if (marketDataDTOs.isEmpty()) {
-            return new ArrayList<>();
+            return 0;
         }
 
-        entityManager.flush();
-
+        Map<LocalDate, MarketDataDTO> byDate = new TreeMap<>();
         for (MarketDataDTO dto : marketDataDTOs) {
-            marketDataRepository.upsertMarketData(
-                    asset.getId(),
-                    dto.getTimestamp(),
-                    dto.getOpen(),
-                    dto.getHigh(),
-                    dto.getLow(),
-                    dto.getClose(),
-                    dto.getVolume()
-            );
+            byDate.put(dto.getTimestamp(), dto);
         }
 
-        List<LocalDate> requestedTimestamps = marketDataDTOs.stream()
-                .map(MarketDataDTO::getTimestamp)
-                .toList();
+        int n = byDate.size();
+        LocalDate[] timestamps = new LocalDate[n];
+        Double[] opens = new Double[n];
+        Double[] highs = new Double[n];
+        Double[] lows = new Double[n];
+        Double[] closes = new Double[n];
+        Double[] volumes = new Double[n];
 
-        List<MarketData> records = marketDataRepository
-                .findByAssetAndTimestampIn(asset, requestedTimestamps);
-
-        for (MarketData record : records) {
-            entityManager.refresh(record);
+        int i = 0;
+        for (MarketDataDTO dto : byDate.values()) {
+            timestamps[i] = dto.getTimestamp();
+            opens[i] = dto.getOpen();
+            highs[i] = dto.getHigh();
+            lows[i] = dto.getLow();
+            closes[i] = dto.getClose();
+            volumes[i] = dto.getVolume();
+            i++;
         }
 
-        Map<LocalDate, MarketData> persistedRecords = records.stream()
-                .collect(Collectors.toMap(
-                        MarketData::getTimestamp,
-                        Function.identity()
-                ));
-
-        return marketDataDTOs.stream()
-                .map(dto -> persistedRecords.get(dto.getTimestamp()))
-                .toList();
+        return marketDataRepository.upsertBatch(
+                asset.getId(), timestamps, opens, highs, lows, closes, volumes);
     }
 }
