@@ -15,6 +15,11 @@ import static org.springframework.test.web.client.match.MockRestRequestMatchers.
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.method;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
+import com.marketatlas.market.dto.MarketDataDTO;
+import java.util.List;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.springframework.test.web.client.match.MockRestRequestMatchers.queryParam;
+
 class TwelveDataMarketDataClientRequestTest {
 
     private MockRestServiceServer mockServer;
@@ -59,5 +64,44 @@ class TwelveDataMarketDataClientRequestTest {
                 LocalDate.of(2026, 10, 1), LocalDate.of(2026, 10, 2), "1day");
 
         mockServer.verify();
+    }
+
+    @Test
+    void shouldAskProviderForOneDayPastEndBecauseEndDateIsExclusive() {
+        mockServer.expect(method(GET))
+                .andExpect(queryParam("start_date", "2024-02-05"))
+                .andExpect(queryParam("end_date", "2024-02-10"))
+                .andRespond(withSuccess("""
+                        {"symbol": "AAPL", "interval": "1day", "status": "ok", "values": []}
+                        """, APPLICATION_JSON));
+
+        client.getHistoricalData("AAPL",
+                LocalDate.of(2024, 2, 5), LocalDate.of(2024, 2, 9), "1day");
+
+        mockServer.verify();
+    }
+
+    @Test
+    void shouldDropBarsOutsideTheRequestedRange() {
+        mockServer.expect(method(GET))
+                .andRespond(withSuccess("""
+                        {
+                            "symbol": "AAPL",
+                            "interval": "1day",
+                            "status": "ok",
+                            "values": [
+                                {"datetime": "2026-10-03", "open": 12.0, "high": 13.0, "low": 11.0, "close": 12.5, "volume": 10},
+                                {"datetime": "2026-10-02", "open": 11.0, "high": 12.0, "low": 10.0, "close": 11.5, "volume": 10},
+                                {"datetime": "2026-10-01", "open": 10.0, "high": 11.0, "low": 9.0, "close": 10.5, "volume": 10},
+                                {"datetime": "2026-09-30", "open": 9.0, "high": 10.0, "low": 8.0, "close": 9.5, "volume": 10}
+                            ]
+                        }
+                        """, APPLICATION_JSON));
+
+        List<MarketDataDTO> bars = client.getHistoricalData("AAPL",
+                LocalDate.of(2026, 10, 1), LocalDate.of(2026, 10, 2), "1day");
+
+        assertEquals(List.of(LocalDate.of(2026, 10, 2), LocalDate.of(2026, 10, 1)),
+                bars.stream().map(MarketDataDTO::getTimestamp).toList());
     }
 }
