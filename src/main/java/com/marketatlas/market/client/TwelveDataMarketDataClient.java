@@ -46,7 +46,7 @@ public class TwelveDataMarketDataClient implements MarketDataClient {
                         .queryParam("symbol", symbol)
                         .queryParam("interval", interval)
                         .queryParam("start_date", startDate)
-                        .queryParam("end_date", endDate)
+                        .queryParam("end_date", endDate.plusDays(1))            // Twelve Data treats end_date as exclusive for daily bars
                         .build())
                     .header("Authorization", "apikey " + apiKey)
                     .header("Accept", "application/json")
@@ -146,6 +146,9 @@ public class TwelveDataMarketDataClient implements MarketDataClient {
                 }
             }
 
-            return response.getValues();
+            return response.getValues().stream()
+                    .filter(record -> !record.getTimestamp().isBefore(startDate)
+                            && !record.getTimestamp().isAfter(endDate))
+                    .toList();
     }
 }
