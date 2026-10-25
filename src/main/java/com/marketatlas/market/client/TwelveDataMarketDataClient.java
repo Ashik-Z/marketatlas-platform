@@ -47,8 +47,8 @@ public class TwelveDataMarketDataClient implements MarketDataClient {
                         .queryParam("interval", interval)
                         .queryParam("start_date", startDate)
                         .queryParam("end_date", endDate)
-                        .queryParam("apikey", apiKey)
                         .build())
+                    .header("Authorization", "apikey " + apiKey)
                     .header("Accept", "application/json")
                     .retrieve()
                     .body(MarketDataResponseDTO.class);
