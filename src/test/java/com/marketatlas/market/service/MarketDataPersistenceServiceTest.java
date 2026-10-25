@@ -136,4 +136,17 @@ class MarketDataPersistenceServiceTest {
         assertEquals(0, written);
         assertEquals(0, rows(D1, D3).size());
     }
+
+    @Test
+    void shouldPersistBarWithoutVolume() {
+        MarketDataDTO noVolume = new MarketDataDTO(10.0, 11.0, 9.0, 10.5, null, D1);
+
+        int written = persistenceService.persistHistoricalData(asset, List.of(noVolume, bar(D2, 20.0)));
+
+        assertEquals(2, written);
+        List<MarketData> rows = rows(D1, D2);
+        assertEquals(2, rows.size());
+        assertEquals(null, rows.get(0).getVolume());
+        assertEquals(1000.0, rows.get(1).getVolume().doubleValue());
+    }
 }
