@@ -104,4 +104,25 @@ class TwelveDataMarketDataClientRequestTest {
         assertEquals(List.of(LocalDate.of(2026, 10, 2), LocalDate.of(2026, 10, 1)),
                 bars.stream().map(MarketDataDTO::getTimestamp).toList());
     }
+
+    @Test
+    void shouldParseCommodityBarWithoutVolume() {
+        mockServer.expect(method(GET))
+                .andRespond(withSuccess("""
+                        {
+                            "meta": {"symbol": "XAU/USD", "interval": "1day", "type": "Precious Metal"},
+                            "values": [
+                                {"datetime": "2026-10-25", "open": "3993.61501", "high": "3993.92923", "low": "3993.51289", "close": "3993.80662"}
+                            ],
+                            "status": "ok"
+                        }
+                        """, APPLICATION_JSON));
+
+        List<MarketDataDTO> bars = client.getHistoricalData("XAU/USD",
+                LocalDate.of(2026, 10, 25), LocalDate.of(2026, 10, 25), "1day");
+
+        assertEquals(1, bars.size());
+        assertEquals(3993.80662, bars.get(0).getClose());
+        assertEquals(null, bars.get(0).getVolume());
+    }
 }
