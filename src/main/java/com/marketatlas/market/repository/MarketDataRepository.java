@@ -36,9 +36,16 @@ public interface MarketDataRepository extends JpaRepository<MarketData, Long> {
         INSERT INTO market_data (
             asset_id, timestamp, open, high, low, close, volume
         )
-        VALUES (
-            :assetId, :timestamp, :open, :high, :low, :close, :volume
-        )
+        SELECT CAST(:assetId AS bigint), u.ts, u.o, u.h, u.l, u.c, u.v
+        FROM unnest(
+            CAST(:timestamps AS date[]),
+            CAST(:opens AS double precision[]),
+            CAST(:highs AS double precision[]),
+            CAST(:lows AS double precision[]),
+            CAST(:closes AS double precision[]),
+            CAST(:volumes AS double precision[])
+        ) AS u(ts, o, h, l, c, v)
+        ORDER BY u.ts
         ON CONFLICT (asset_id, timestamp)
         DO UPDATE SET
             open = EXCLUDED.open,
@@ -47,13 +54,13 @@ public interface MarketDataRepository extends JpaRepository<MarketData, Long> {
             close = EXCLUDED.close,
             volume = EXCLUDED.volume
         """, nativeQuery = true)
-    int upsertMarketData(
+    int upsertBatch(
             @Param("assetId") Long assetId,
-            @Param("timestamp") LocalDate timestamp,
-            @Param("open") Double open,
-            @Param("high") Double high,
-            @Param("low") Double low,
-            @Param("close") Double close,
-            @Param("volume") Double volume
+            @Param("timestamps") LocalDate[] timestamps,
+            @Param("opens") Double[] opens,
+            @Param("highs") Double[] highs,
+            @Param("lows") Double[] lows,
+            @Param("closes") Double[] closes,
+            @Param("volumes") Double[] volumes
     );
 }
