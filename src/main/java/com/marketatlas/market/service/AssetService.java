@@ -12,6 +12,7 @@ public interface AssetService {
     List<Asset> findAssetsByClass(AssetClass assetClass);
     List<Asset> findAllAssets();
     Map<Long, String> findSymbolsByAssetIds(Collection<Long> assetIds);
+    List<String> findAllProviderSymbols();
     Optional<Asset> findAssetById(Long id);
     Optional<Asset> findAssetBySymbol(String symbol);
 }

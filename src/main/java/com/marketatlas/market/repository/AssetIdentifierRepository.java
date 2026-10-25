@@ -21,4 +21,12 @@ public interface AssetIdentifierRepository
     List<AssetIdentifier> findByAssetIdsAndScheme(
             @Param("assetIds") Collection<Long> assetIds,
             @Param("scheme") IdentifierScheme scheme);
+
+    @Query("""
+        select i.identifierValue from AssetIdentifier i
+        where i.scheme = :scheme
+        order by i.identifierValue
+        """)
+    List<String> findIdentifierValuesByScheme(
+            @Param("scheme") IdentifierScheme scheme);
 }

@@ -124,6 +124,12 @@ public class AssetServiceImpl implements AssetService {
         );
     }
 
+    @Override
+    public List<String> findAllProviderSymbols() {
+        return assetIdentifierRepository
+                .findIdentifierValuesByScheme(IdentifierScheme.TWELVE_DATA_SYMBOL);
+    }
+
     private String normalizeSymbol(String symbol) {
         if (symbol == null || symbol.isBlank()) {
             return null;
