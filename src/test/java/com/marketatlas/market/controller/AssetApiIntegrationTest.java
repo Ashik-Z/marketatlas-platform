@@ -10,9 +10,12 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
+
+import java.util.Base64;
+import java.nio.charset.StandardCharsets;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -24,6 +27,13 @@ class AssetApiIntegrationTest {
 
     @Autowired
     private MockMvc mockMvc;
+
+    private static MockHttpServletRequestBuilder post(String url) {
+        String credentials = Base64.getEncoder()
+                .encodeToString("admin:test-only-password".getBytes(StandardCharsets.UTF_8));
+        return org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post(url)
+                .header("Authorization", "Basic " + credentials);
+    }
 
     private int createIssuer(String name) throws Exception {
         String body = mockMvc.perform(post("/api/issuers")
