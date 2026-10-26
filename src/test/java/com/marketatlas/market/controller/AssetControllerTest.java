@@ -55,7 +55,7 @@ class AssetControllerTest {
     @Test
     void shouldCreateAsset() throws Exception {
         Asset apple = assetWithId(1L, "Apple", AssetClass.EQUITY, issuerWithId(5L));
-        when(assetService.createAsset("Apple", AssetClass.EQUITY, 5L, "aapl"))
+        when(assetService.createAsset("Apple", AssetClass.EQUITY, 5L, "aapl", null, null))
                 .thenReturn(apple);
         when(assetService.findSymbolsByAssetIds(List.of(1L)))
                 .thenReturn(Map.of(1L, "AAPL"));
@@ -102,7 +102,7 @@ class AssetControllerTest {
 
     @Test
     void shouldMapBusinessRuleViolationTo400() throws Exception {
-        when(assetService.createAsset(anyString(), any(), any(), any()))
+        when(assetService.createAsset(anyString(), any(), any(), any(), any(), any()))
                 .thenThrow(new IllegalArgumentException("An equity asset requires an issuer."));
 
         mockMvc.perform(post("/api/assets")
@@ -116,7 +116,7 @@ class AssetControllerTest {
 
     @Test
     void shouldMapUnknownIssuerTo404() throws Exception {
-        when(assetService.createAsset(anyString(), any(), anyLong(), any()))
+        when(assetService.createAsset(anyString(), any(), anyLong(), any(), any(), any()))
                 .thenThrow(new ResourceNotFoundException("Issuer 99 was not found."));
 
         mockMvc.perform(post("/api/assets")
@@ -130,7 +130,7 @@ class AssetControllerTest {
 
     @Test
     void shouldMapDuplicateSymbolTo409() throws Exception {
-        when(assetService.createAsset(anyString(), any(), anyLong(), anyString()))
+        when(assetService.createAsset(anyString(), any(), anyLong(), anyString(), any(), any()))
                 .thenThrow(new DuplicateResourceException("An asset with symbol AAPL already exists."));
 
         mockMvc.perform(post("/api/assets")
