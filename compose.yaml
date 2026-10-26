@@ -28,6 +28,7 @@ services:
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in your .env file}
       TWELVEDATA_API_KEY: ${TWELVEDATA_API_KEY:?Set TWELVEDATA_API_KEY in your .env file}
+      FRED_API_KEY: ${FRED_API_KEY:?Set FRED_API_KEY in your .env file}
 
 volumes:
   marketatlas-data:
