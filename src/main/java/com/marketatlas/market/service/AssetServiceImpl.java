@@ -40,7 +40,8 @@ public class AssetServiceImpl implements AssetService {
     @Override
     @Transactional
     public Asset createAsset(String name, AssetClass assetClass,
-                             Long issuerId, String symbol) {
+                             Long issuerId, String symbol,
+                             String currency, String unit) {
 
         if (name == null || name.isBlank()) {
             throw new IllegalArgumentException("Asset name must not be blank.");
@@ -64,6 +65,9 @@ public class AssetServiceImpl implements AssetService {
 
         String normalizedSymbol = normalizeSymbol(symbol);
 
+        String normalizedCurrency = normalizeCurrency(currency);
+        String normalizedUnit = normalizeUnit(unit);
+
         if (normalizedSymbol != null
                 && assetRepository.findByIdentifier(
                 IdentifierScheme.TWELVE_DATA_SYMBOL, normalizedSymbol).isPresent()) {
@@ -71,7 +75,8 @@ public class AssetServiceImpl implements AssetService {
                     "An asset with symbol " + normalizedSymbol + " already exists.");
         }
 
-        Asset asset = assetRepository.save(new Asset(name.trim(), assetClass, issuer));
+        Asset asset = assetRepository.save(
+                new Asset(name.trim(), assetClass, issuer, normalizedCurrency, normalizedUnit));
 
         if (normalizedSymbol != null) {
             try {
@@ -135,5 +140,27 @@ public class AssetServiceImpl implements AssetService {
             return null;
         }
         return symbol.trim().toUpperCase(Locale.ROOT);
+    }
+
+    private static String normalizeCurrency(String currency) {
+        if (currency == null || currency.isBlank()) {
+            return null;
+        }
+        String normalized = currency.trim().toUpperCase(java.util.Locale.ROOT);
+        if (!normalized.matches("[A-Z]{3}")) {
+            throw new IllegalArgumentException("Currency must be a 3-letter ISO 4217 code.");
+        }
+        return normalized;
+    }
+
+    private static String normalizeUnit(String unit) {
+        if (unit == null || unit.isBlank()) {
+            return null;
+        }
+        String normalized = unit.trim();
+        if (normalized.length() > 50) {
+            throw new IllegalArgumentException("Unit must be at most 50 characters.");
+        }
+        return normalized;
     }
 }

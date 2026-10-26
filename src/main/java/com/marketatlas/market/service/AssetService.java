@@ -8,7 +8,12 @@ import java.util.Map;
 import java.util.List;
 
 public interface AssetService {
-    Asset createAsset(String name, AssetClass assetClass, Long issuerId, String symbol);
+    Asset createAsset(String name, AssetClass assetClass, Long issuerId, String symbol,
+                      String currency, String unit);
+
+    default Asset createAsset(String name, AssetClass assetClass, Long issuerId, String symbol) {
+        return createAsset(name, assetClass, issuerId, symbol, null, null);
+    }
     List<Asset> findAssetsByClass(AssetClass assetClass);
     List<Asset> findAllAssets();
     Map<Long, String> findSymbolsByAssetIds(Collection<Long> assetIds);

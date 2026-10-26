@@ -8,7 +8,9 @@ public record AssetResponse(
         String name,
         AssetClass assetClass,
         Long issuerId,
-        String symbol
+        String symbol,
+        String currency,
+        String unit
 ) {
 
     public static AssetResponse from(Asset asset, String symbol) {
@@ -17,7 +19,9 @@ public record AssetResponse(
                 asset.getName(),
                 asset.getAssetClass(),
                 asset.getIssuer() == null ? null : asset.getIssuer().getId(),
-                symbol
+                symbol,
+                asset.getCurrency(),
+                asset.getUnit()
         );
     }
 }

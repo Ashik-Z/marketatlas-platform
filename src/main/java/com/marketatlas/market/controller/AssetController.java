@@ -31,7 +31,8 @@ public class AssetController {
 
         Asset saved = assetService.createAsset(
                 request.name(), request.assetClass(),
-                request.issuerId(), request.symbol());
+                request.issuerId(), request.symbol(),
+                request.currency(), request.unit());
 
         Map<Long, String> symbols =
                 assetService.findSymbolsByAssetIds(List.of(saved.getId()));

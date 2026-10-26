@@ -3,6 +3,7 @@ package com.marketatlas.market.entity;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 
 import com.marketatlas.enums.AssetClass;
 import com.marketatlas.market.validation.ValidAsset;
@@ -29,10 +30,23 @@ public class Asset {
     @JoinColumn(name = "issuer_id")
     private Issuer issuer;
 
+    @Pattern(regexp = "[A-Z]{3}")
+    @Column(length = 3)
+    private String currency;
+
+    @Column(length = 50)
+    private String unit;
+
     public Asset(String name, AssetClass assetClass, Issuer issuer) {
         this.name = name;
         this.assetClass = assetClass;
         this.issuer = issuer;
+    }
+
+    public Asset(String name, AssetClass assetClass, Issuer issuer, String currency, String unit) {
+        this(name, assetClass, issuer);
+        this.currency = currency;
+        this.unit = unit;
     }
 
     protected Asset() {
@@ -53,6 +67,14 @@ public class Asset {
 
     public String getName() {
         return name;
+    }
+
+    public String getCurrency() {
+        return currency;
+    }
+
+    public String getUnit() {
+        return unit;
     }
 
 }
