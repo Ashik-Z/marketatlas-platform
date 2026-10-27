@@ -62,4 +62,11 @@ class SecurityIntegrationTest {
                         .content("{\"name\": \"Gold\", \"assetClass\": \"COMMODITY\"}"))
                 .andExpect(status().isUnauthorized());
     }
+
+    @Test
+    void accountReadsRequireCredentials() throws Exception {
+        mockMvc.perform(get("/api/accounts")).andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/api/accounts").header("Authorization", basic("admin", "test-only-password")))
+                .andExpect(status().isOk());
+    }
 }
