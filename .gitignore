@@ -34,3 +34,4 @@ application-local.properties
 .vscode/
 
 .env
+prices.sql
