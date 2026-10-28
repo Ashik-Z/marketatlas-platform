@@ -52,11 +52,15 @@ public class Trade {
     @Column(name = "executed_at", nullable = false)
     private Instant executedAt;
 
+    @Column(name = "idempotency_key", nullable = false, length = 100)
+    private String idempotencyKey;
+
     protected Trade() {
     }
 
     public Trade(Account account, Asset asset, TradeSide side, BigDecimal quantity,
-                 BigDecimal price, BigDecimal commission, LocalDate priceDate, Instant executedAt) {
+                 BigDecimal price, BigDecimal commission, LocalDate priceDate, Instant executedAt,
+                 String idempotencyKey) {
         this.account = account;
         this.asset = asset;
         this.side = side;
@@ -65,6 +69,7 @@ public class Trade {
         this.commission = commission;
         this.priceDate = priceDate;
         this.executedAt = executedAt;
+        this.idempotencyKey = idempotencyKey;
     }
 
     public Long getId() { return id; }
@@ -76,4 +81,5 @@ public class Trade {
     public BigDecimal getCommission() { return commission; }
     public LocalDate getPriceDate() { return priceDate; }
     public Instant getExecutedAt() { return executedAt; }
+    public String getIdempotencyKey() { return idempotencyKey; }
 }

@@ -21,6 +21,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.util.Base64;
+import java.util.UUID;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -41,8 +42,12 @@ class OrderApiIntegrationTest {
     @Autowired private Clock clock;
 
     private static MockHttpServletRequestBuilder post(String url, String json) {
-        return MockMvcRequestBuilders.post(url).header("Authorization", AUTH)
+        MockHttpServletRequestBuilder request = MockMvcRequestBuilders.post(url)
+                .header("Authorization", AUTH)
                 .contentType(MediaType.APPLICATION_JSON).content(json);
+        return url.endsWith("/orders")
+                ? request.header("Idempotency-Key", UUID.randomUUID().toString())
+                : request;
     }
 
     private static MockHttpServletRequestBuilder get(String url) {
@@ -84,6 +89,12 @@ class OrderApiIntegrationTest {
         mockMvc.perform(post("/api/accounts/" + accountId + "/orders", json))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.detail").value(containsString(detailPart)));
+    }
+
+    private MockHttpServletRequestBuilder keyedOrder(int accountId, String key, String json) {
+        return MockMvcRequestBuilders.post("/api/accounts/" + accountId + "/orders")
+                .header("Authorization", AUTH).header("Idempotency-Key", key)
+                .contentType(MediaType.APPLICATION_JSON).content(json);
     }
 
     @Test
@@ -190,6 +201,54 @@ class OrderApiIntegrationTest {
         mockMvc.perform(post("/api/accounts/" + accountId + "/orders", order(goldId, "BUY", "0")))
                 .andExpect(status().isBadRequest());
         mockMvc.perform(post("/api/accounts/" + accountId + "/orders", order(goldId, "HOLD", "1")))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void shouldReplayARetriedOrderWithoutTradingTwice() throws Exception {
+        int accountId = account("USD", "10000");
+        int goldId = gold();
+        bar(goldId, LocalDate.now(clock), 2000.0);
+
+        String first = mockMvc.perform(keyedOrder(accountId, "order-1", order(goldId, "BUY", "1")))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        int tradeId = JsonPath.read(first, "$.id");
+
+        mockMvc.perform(keyedOrder(accountId, "order-1", order(goldId, "BUY", "1")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(tradeId));
+
+        // 10000 - 2000.00 - 1.00 commission, charged once
+        mockMvc.perform(get("/api/accounts/" + accountId))
+                .andExpect(jsonPath("$.cashBalance").value(7999.0));
+    }
+
+    @Test
+    void shouldRejectAKeyReusedForADifferentOrder() throws Exception {
+        int accountId = account("USD", "10000");
+        int goldId = gold();
+        bar(goldId, LocalDate.now(clock), 2000.0);
+
+        mockMvc.perform(keyedOrder(accountId, "order-1", order(goldId, "BUY", "1")))
+                .andExpect(status().isCreated());
+        mockMvc.perform(keyedOrder(accountId, "order-1", order(goldId, "BUY", "2")))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.detail").value(containsString("different order")));
+
+        mockMvc.perform(get("/api/accounts/" + accountId))
+                .andExpect(jsonPath("$.cashBalance").value(7999.0));
+    }
+
+    @Test
+    void shouldRequireAnIdempotencyKey() throws Exception {
+        int accountId = account("USD", "10000");
+        int goldId = gold();
+
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/accounts/" + accountId + "/orders")
+                        .header("Authorization", AUTH)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(order(goldId, "BUY", "1")))
                 .andExpect(status().isBadRequest());
     }
 }

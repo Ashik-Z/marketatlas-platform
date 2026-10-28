@@ -49,8 +49,15 @@ public class OrderService {
         this.commission = commission.setScale(SCALE, RoundingMode.HALF_EVEN);
     }
 
+    public record OrderResult(Trade trade, boolean replayed) {
+    }
+
     @Transactional
-    public Trade placeMarketOrder(Long accountId, Long assetId, TradeSide side, BigDecimal quantity) {
+    public OrderResult placeMarketOrder(Long accountId, Long assetId, TradeSide side,
+                                        BigDecimal quantity, String idempotencyKey) {
+        if (idempotencyKey == null || idempotencyKey.isBlank() || idempotencyKey.length() > 100) {
+            throw new IllegalArgumentException("Idempotency-Key must be 1 to 100 characters");
+        }
         if (quantity == null || quantity.signum() <= 0) {
             throw new IllegalArgumentException("Quantity must be positive");
         }
@@ -59,8 +66,23 @@ public class OrderService {
         // orders on one account queue up and always see each other's cash and positions.
         Account account = accountRepository.findByIdForUpdate(accountId)
                 .orElseThrow(() -> new ResourceNotFoundException("Account not found: " + accountId));
+
+        var existing = tradeRepository.findByAccountIdAndIdempotencyKey(accountId, idempotencyKey);
+        if (existing.isPresent()) {
+            Trade original = existing.get();
+            boolean sameOrder = original.getAsset().getId().equals(assetId)
+                    && original.getSide() == side
+                    && original.getQuantity().compareTo(quantity) == 0;
+            if (!sameOrder) {
+                throw new OrderRejectedException(
+                        "Idempotency-Key was already used for a different order");
+            }
+            return new OrderResult(original, true);
+        }
+
         Asset asset = assetRepository.findById(assetId)
                 .orElseThrow(() -> new ResourceNotFoundException("Asset not found: " + assetId));
+
 
         if (!account.getCurrency().equals(asset.getCurrency())) {
             throw new OrderRejectedException("Asset currency " + asset.getCurrency()
@@ -108,8 +130,8 @@ public class OrderService {
             account.credit(proceeds);
         }
 
-        return tradeRepository.save(new Trade(account, asset, side,
+        return new OrderResult(tradeRepository.save(new Trade(account, asset, side,
                 quantity.setScale(SCALE, RoundingMode.HALF_EVEN), price, commission,
-                bar.getTimestamp(), clock.instant()));
+                bar.getTimestamp(), clock.instant(), idempotencyKey)), false);
     }
 }

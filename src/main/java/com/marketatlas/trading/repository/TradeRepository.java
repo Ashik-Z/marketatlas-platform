@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.math.BigDecimal;
+import java.util.Optional;
 
 public interface TradeRepository extends JpaRepository<Trade, Long> {
 
@@ -17,4 +18,5 @@ public interface TradeRepository extends JpaRepository<Trade, Long> {
             where t.account.id = :accountId and t.asset.id = :assetId
             """)
     BigDecimal netQuantity(@Param("accountId") Long accountId, @Param("assetId") Long assetId);
+    Optional<Trade> findByAccountIdAndIdempotencyKey(Long accountId, String idempotencyKey);
 }
