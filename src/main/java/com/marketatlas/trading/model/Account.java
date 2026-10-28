@@ -50,4 +50,18 @@ public class Account {
     public BigDecimal getStartingBalance() { return startingBalance; }
     public BigDecimal getCashBalance() { return cashBalance; }
     public Instant getCreatedAt() { return createdAt; }
+
+    public void debit(BigDecimal amount) {
+        if (amount.signum() < 0 || cashBalance.compareTo(amount) < 0) {
+            throw new IllegalStateException("Debit would make the cash balance negative");
+        }
+        cashBalance = cashBalance.subtract(amount);
+    }
+
+    public void credit(BigDecimal amount) {
+        if (amount.signum() < 0) {
+            throw new IllegalStateException("Credit must not be negative");
+        }
+        cashBalance = cashBalance.add(amount);
+    }
 }

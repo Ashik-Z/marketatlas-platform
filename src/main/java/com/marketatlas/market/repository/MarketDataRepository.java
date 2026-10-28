@@ -17,6 +17,7 @@ import java.util.Collection;
 @Repository
 public interface MarketDataRepository extends JpaRepository<MarketData, Long> {
     List<MarketData> findByAsset(Asset asset);
+    Optional<MarketData> findFirstByAssetOrderByTimestampDesc(Asset asset);
     Optional<MarketData> findByAssetAndTimestamp(
         Asset asset,
         LocalDate timestamp
