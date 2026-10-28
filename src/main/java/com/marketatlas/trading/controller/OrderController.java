@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.RequestHeader;
 
 @RestController
 @RequestMapping("/api/accounts/{accountId}/orders")
@@ -23,10 +24,13 @@ public class OrderController {
     }
 
     @PostMapping
-    public ResponseEntity<TradeResponse> placeMarketOrder(@PathVariable Long accountId,
-                                                          @Valid @RequestBody PlaceOrderRequest request) {
-        var trade = orderService.placeMarketOrder(
-                accountId, request.assetId(), request.side(), request.quantity());
-        return ResponseEntity.status(HttpStatus.CREATED).body(TradeResponse.from(trade));
+    public ResponseEntity<TradeResponse> placeMarketOrder(
+            @PathVariable Long accountId,
+            @RequestHeader("Idempotency-Key") String idempotencyKey,
+            @Valid @RequestBody PlaceOrderRequest request) {
+        var result = orderService.placeMarketOrder(
+                accountId, request.assetId(), request.side(), request.quantity(), idempotencyKey);
+        HttpStatus status = result.replayed() ? HttpStatus.OK : HttpStatus.CREATED;
+        return ResponseEntity.status(status).body(TradeResponse.from(result.trade()));
     }
 }
