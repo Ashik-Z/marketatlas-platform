@@ -32,6 +32,7 @@ import java.util.UUID;
 import static org.hamcrest.Matchers.nullValue;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -171,7 +172,10 @@ class PortfolioApiIntegrationTest {
                 .andExpect(jsonPath("$.valuationComplete").value(false))
                 .andExpect(jsonPath("$.positions[0].latestPrice").value(nullValue()))
                 .andExpect(jsonPath("$.positions[0].marketValue").value(nullValue()))
-                .andExpect(jsonPath("$.positions[0].stale").value(true));
+                .andExpect(jsonPath("$.positions[0].stale").value(true))
+                .andExpect(jsonPath("$.positions[0].costBasis").value(2001.0))
+                .andExpect(jsonPath("$.positions[0].unrealizedPnl").value(nullValue()));
+
     }
 
     @Test
@@ -182,6 +186,56 @@ class PortfolioApiIntegrationTest {
                 .andExpect(status().isUnauthorized());
         mockMvc.perform(get("/api/accounts/999999/portfolio"))
                 .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void shouldSplitProfitIntoRealizedAndUnrealizedAndTheyMustAddUp() throws Exception {
+        int accountId = account();
+        int goldId = commodity("Gold");
+        LocalDate today = LocalDate.now(clock);
+        bar(goldId, today.minusDays(1), 2000.0);
+        buy(accountId, goldId, "2"); // cost 4001 (2 x 2000 + 1 commission), cash 5999
+
+        bar(goldId, today, 2100.0);
+        mockMvc.perform(post("/api/accounts/" + accountId + "/orders",
+                        "{\"assetId\": " + goldId + ", \"side\": \"SELL\", \"quantity\": 1}"))
+                .andExpect(status().isCreated()); // proceeds 2100 - 1 = 2099 -> cash 8098
+
+        // realized: 2099 - 2000.5 average cost = 98.5
+        // left: 1 oz, cost 2000.5, worth 2100 -> unrealized 99.5; total 10198 -> P&L 198
+        String body = mockMvc.perform(get("/api/accounts/" + accountId + "/portfolio"))
+                .andExpect(jsonPath("$.positions[0].quantity").value(1.0))
+                .andExpect(jsonPath("$.positions[0].averageCost").value(2000.5))
+                .andExpect(jsonPath("$.positions[0].costBasis").value(2000.5))
+                .andExpect(jsonPath("$.positions[0].marketValue").value(2100.0))
+                .andExpect(jsonPath("$.positions[0].unrealizedPnl").value(99.5))
+                .andExpect(jsonPath("$.realizedPnl").value(98.5))
+                .andExpect(jsonPath("$.unrealizedPnl").value(99.5))
+                .andExpect(jsonPath("$.profitLoss").value(198.0))
+                .andReturn().getResponse().getContentAsString();
+
+        double realized = ((Number) JsonPath.read(body, "$.realizedPnl")).doubleValue();
+        double unrealized = ((Number) JsonPath.read(body, "$.unrealizedPnl")).doubleValue();
+        double profitLoss = ((Number) JsonPath.read(body, "$.profitLoss")).doubleValue();
+        assertEquals(profitLoss, realized + unrealized, 0.000001);
+    }
+
+    @Test
+    void shouldKeepRealizedLossAfterAFullSale() throws Exception {
+        int accountId = account();
+        int goldId = commodity("Gold");
+        bar(goldId, LocalDate.now(clock), 2000.0);
+        buy(accountId, goldId, "1");
+        mockMvc.perform(post("/api/accounts/" + accountId + "/orders",
+                        "{\"assetId\": " + goldId + ", \"side\": \"SELL\", \"quantity\": 1}"))
+                .andExpect(status().isCreated());
+
+        // flat price: the only loss is the two commissions
+        mockMvc.perform(get("/api/accounts/" + accountId + "/portfolio"))
+                .andExpect(jsonPath("$.positions.length()").value(0))
+                .andExpect(jsonPath("$.realizedPnl").value(-2.0))
+                .andExpect(jsonPath("$.unrealizedPnl").value(0.0))
+                .andExpect(jsonPath("$.profitLoss").value(-2.0));
     }
 
     private void saveTradeDirectly(int accountId, int assetId) {

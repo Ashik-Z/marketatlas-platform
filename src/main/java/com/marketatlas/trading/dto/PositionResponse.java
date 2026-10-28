@@ -7,8 +7,11 @@ public record PositionResponse(
         Long assetId,
         String assetName,
         BigDecimal quantity,
+        BigDecimal averageCost,
+        BigDecimal costBasis,
         BigDecimal latestPrice,
         LocalDate priceDate,
         BigDecimal marketValue,
+        BigDecimal unrealizedPnl,
         boolean stale) {
 }

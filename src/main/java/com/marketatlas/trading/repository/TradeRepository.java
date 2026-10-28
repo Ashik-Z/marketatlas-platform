@@ -1,14 +1,13 @@
 package com.marketatlas.trading.repository;
 
-import com.marketatlas.trading.model.PositionQuantity;
 import com.marketatlas.trading.model.Trade;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.math.BigDecimal;
-import java.util.Optional;
 import java.util.List;
+import java.util.Optional;
 
 public interface TradeRepository extends JpaRepository<Trade, Long> {
 
@@ -20,19 +19,8 @@ public interface TradeRepository extends JpaRepository<Trade, Long> {
             where t.account.id = :accountId and t.asset.id = :assetId
             """)
     BigDecimal netQuantity(@Param("accountId") Long accountId, @Param("assetId") Long assetId);
+
     Optional<Trade> findByAccountIdAndIdempotencyKey(Long accountId, String idempotencyKey);
-    // One row per asset the account currently holds (net quantity above zero).
-    @Query("""
-            select new com.marketatlas.trading.model.PositionQuantity(
-                t.asset.id,
-                sum(case when t.side = com.marketatlas.trading.model.TradeSide.BUY
-                         then t.quantity else -t.quantity end))
-            from Trade t
-            where t.account.id = :accountId
-            group by t.asset.id
-            having sum(case when t.side = com.marketatlas.trading.model.TradeSide.BUY
-                            then t.quantity else -t.quantity end) > 0
-            order by t.asset.id
-            """)
-    List<PositionQuantity> findPositions(@Param("accountId") Long accountId);
+
+    List<Trade> findByAccountIdOrderByExecutedAtAscIdAsc(Long accountId);
 }

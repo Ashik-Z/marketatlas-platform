@@ -11,6 +11,8 @@ public record PortfolioResponse(
         BigDecimal positionsValue,
         BigDecimal totalValue,
         BigDecimal profitLoss,
+        BigDecimal realizedPnl,
+        BigDecimal unrealizedPnl,
         boolean valuationComplete,
         List<PositionResponse> positions) {
 }
