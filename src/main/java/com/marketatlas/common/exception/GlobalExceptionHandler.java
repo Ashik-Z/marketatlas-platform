@@ -128,4 +128,17 @@ public class GlobalExceptionHandler {
 
         return problemDetail;
     }
+
+    @ExceptionHandler(OrderRejectedException.class)
+    @ResponseStatus(HttpStatus.CONFLICT)
+    public ProblemDetail handleOrderRejected(OrderRejectedException exception) {
+
+        ProblemDetail problemDetail =
+                ProblemDetail.forStatus(HttpStatus.CONFLICT);
+
+        problemDetail.setTitle("Order Rejected");
+        problemDetail.setDetail(exception.getMessage());
+
+        return problemDetail;
+    }
 }
