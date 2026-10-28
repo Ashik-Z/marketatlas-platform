@@ -69,4 +69,12 @@ class SecurityIntegrationTest {
         mockMvc.perform(get("/api/accounts").header("Authorization", basic("admin", "test-only-password")))
                 .andExpect(status().isOk());
     }
+
+    @Test
+    void marketDataHistoryRequiresCredentialsBecauseItCanCallTheProvider() throws Exception {
+        mockMvc.perform(get("/api/market-data/history")
+                        .param("symbol", "AAPL").param("startDate", "2026-10-01")
+                        .param("endDate", "2026-10-02").param("interval", "1day"))
+                .andExpect(status().isUnauthorized());
+    }
 }

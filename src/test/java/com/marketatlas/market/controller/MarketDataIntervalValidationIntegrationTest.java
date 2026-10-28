@@ -23,6 +23,9 @@ class MarketDataIntervalValidationIntegrationTest {
     @Test
     void shouldRejectUnsupportedIntervalThroughApi() throws Exception {
         mockMvc.perform(get("/api/market-data/history")
+                .header("Authorization", "Basic " + java.util.Base64.getEncoder()
+                        .encodeToString("admin:test-only-password"
+                                .getBytes(java.nio.charset.StandardCharsets.UTF_8)))
                 .param("symbol", "AAPL")
                 .param("startDate", "2026-10-01")
                 .param("endDate", "2026-10-05")

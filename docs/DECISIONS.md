@@ -33,6 +33,7 @@ A short record of what this project is, what it deliberately is not, and why.
 - All non-GET requests require an admin login (HTTP Basic, stateless). The password comes from the environment and the app will not start without it.
 - Secrets live in the untracked `.env`; log messages never include provider error causes, because they can contain request URLs with keys.
 - CI runs the full suite (Testcontainers PostgreSQL) on every pull request.
+- - Public reads are database-only. Anything that can call a data provider (market-data history, series refresh) or exposes account data requires the admin login.
 
 ## Known limits and planned work
 
@@ -40,3 +41,4 @@ A short record of what this project is, what it deliberately is not, and why.
 - No retry or backoff on provider rate limits (HTTP 429) yet.
 - Lists are not paginated yet.
 - Whether AI features are part of the core is undecided.
+- - Daily bars only: the bar for the current day is partial while the market is open, and market orders fill at the latest stored close, so a fill today uses an in-progress price.
