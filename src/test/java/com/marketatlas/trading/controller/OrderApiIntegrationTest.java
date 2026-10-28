@@ -251,4 +251,13 @@ class OrderApiIntegrationTest {
                         .content(order(goldId, "BUY", "1")))
                 .andExpect(status().isBadRequest());
     }
+
+    @Test
+    void shouldRejectAnAssetWithoutACurrencyWithAClearMessage() throws Exception {
+        int accountId = account("USD", "10000");
+        int assetId = idOf(post("/api/assets", "{\"name\": \"Mystery\", \"assetClass\": \"COMMODITY\"}"));
+        bar(assetId, LocalDate.now(clock), 100.0);
+
+        assertRejected(accountId, order(assetId, "BUY", "1"), "no currency");
+    }
 }

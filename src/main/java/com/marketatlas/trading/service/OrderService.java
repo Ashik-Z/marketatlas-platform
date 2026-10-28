@@ -19,6 +19,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Clock;
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 
 @Service
 public class OrderService {
@@ -83,7 +84,9 @@ public class OrderService {
         Asset asset = assetRepository.findById(assetId)
                 .orElseThrow(() -> new ResourceNotFoundException("Asset not found: " + assetId));
 
-
+        if (asset.getCurrency() == null) {
+            throw new OrderRejectedException("Asset has no currency set, so it cannot be traded");
+        }
         if (!account.getCurrency().equals(asset.getCurrency())) {
             throw new OrderRejectedException("Asset currency " + asset.getCurrency()
                     + " does not match account currency " + account.getCurrency());
@@ -132,6 +135,6 @@ public class OrderService {
 
         return new OrderResult(tradeRepository.save(new Trade(account, asset, side,
                 quantity.setScale(SCALE, RoundingMode.HALF_EVEN), price, commission,
-                bar.getTimestamp(), clock.instant(), idempotencyKey)), false);
+                bar.getTimestamp(), clock.instant().truncatedTo(ChronoUnit.MICROS), idempotencyKey)), false);
     }
 }
