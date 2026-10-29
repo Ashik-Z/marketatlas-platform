@@ -3,6 +3,7 @@ package com.marketatlas.market.client;
 import com.marketatlas.common.exception.MarketDataProviderException;
 import com.marketatlas.market.dto.FredObservationsResponse;
 import com.marketatlas.market.dto.SeriesObservationDTO;
+import com.marketatlas.common.exception.ProviderRateLimitException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
@@ -74,7 +75,10 @@ public class FredSeriesClient implements SeriesClient {
         } catch (RestClientResponseException exception) {
             int status = exception.getStatusCode().value();
             if (status == 429) {
-                throw new MarketDataProviderException("FRED rate limit exceeded (HTTP 429).");
+                var headers = exception.getResponseHeaders();
+                throw new ProviderRateLimitException("FRED rate limit exceeded (HTTP 429).",
+                        ProviderRateLimitException.parseRetryAfter(
+                                headers == null ? null : headers.getFirst("Retry-After")));
             }
             String body = exception.getResponseBodyAsString();
             if (body.length() > 300) {

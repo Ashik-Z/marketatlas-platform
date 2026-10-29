@@ -2,6 +2,7 @@ package com.marketatlas.market.refresh;
 
 import com.marketatlas.market.service.AssetService;
 import com.marketatlas.market.service.MarketDataService;
+import com.marketatlas.common.exception.ProviderRateLimitException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -63,6 +64,11 @@ public class MarketDataRefreshJob {
             try {
                 marketDataService.fetchHistoricalData(symbol, from, today, "1day");
                 succeeded++;
+            } catch (ProviderRateLimitException exception) {
+                failed++;
+                log.warn("Refresh stopped early at {}: rate limited, {} assets not attempted. {}",
+                        symbol, symbols.size() - i - 1, exception.getMessage());
+                break;
             } catch (RuntimeException exception) {
                 failed++;
                 log.warn("Refresh failed for {}: {}", symbol, exception.getMessage());

@@ -15,6 +15,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseEntity;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -62,6 +64,24 @@ public class GlobalExceptionHandler {
         );
     
         return problemDetail;
+    }
+
+    @ExceptionHandler(ProviderRateLimitException.class)
+    public ResponseEntity<ProblemDetail> handleProviderRateLimit(ProviderRateLimitException exception) {
+
+        log.warn("Market data provider rate limit: {}", exception.getMessage());
+
+        ProblemDetail problemDetail =
+                ProblemDetail.forStatus(HttpStatus.SERVICE_UNAVAILABLE);
+
+        problemDetail.setTitle("Market Data Provider Rate Limit");
+        problemDetail.setDetail(
+                "The market data provider is rate limiting requests. Try again later."
+        );
+
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                .header(HttpHeaders.RETRY_AFTER, String.valueOf(exception.getRetryAfterSeconds()))
+                .body(problemDetail);
     }
 
     @ExceptionHandler(MissingServletRequestParameterException.class)

@@ -3,6 +3,7 @@ package com.marketatlas.market.refresh;
 import com.marketatlas.enums.SeriesFrequency;
 import com.marketatlas.market.entity.DataSeries;
 import com.marketatlas.market.service.SeriesService;
+import com.marketatlas.common.exception.ProviderRateLimitException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -53,6 +54,11 @@ public class SeriesRefreshJob {
             try {
                 seriesService.refresh(series.getId(), today.minusDays(lookback), today);
                 succeeded++;
+            } catch (ProviderRateLimitException exception) {
+                failed++;
+                log.warn("Series refresh stopped early at {}: rate limited. {}",
+                        series.getExternalId(), exception.getMessage());
+                break;
             } catch (RuntimeException exception) {
                 failed++;
                 log.warn("Series refresh failed for {}: {}", series.getExternalId(), exception.getMessage());
