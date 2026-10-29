@@ -126,7 +126,7 @@ class TwelveDataMarketDataClientErrorTest {
         mockServer.expect(requestTo(
                 org.hamcrest.Matchers.containsString("/time_series")))
             .andExpect(method(GET))
-            .andRespond(withStatus(HttpStatus.TOO_MANY_REQUESTS));
+            .andRespond(withStatus(HttpStatus.BAD_GATEWAY));
     
         MarketDataProviderException exception = assertThrows(
             MarketDataProviderException.class,
@@ -139,7 +139,7 @@ class TwelveDataMarketDataClientErrorTest {
         );
 
         assertTrue(exception.getMessage()
-                .startsWith("Twelve Data returned an HTTP error: 429"));
+                .startsWith("Twelve Data returned an HTTP error: 502"));
     
         assertTrue(exception.getCause() instanceof
             org.springframework.web.client.RestClientResponseException);

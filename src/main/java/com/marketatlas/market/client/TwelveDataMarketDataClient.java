@@ -3,6 +3,7 @@ package com.marketatlas.market.client;
 import org.springframework.stereotype.Component;
 import com.marketatlas.market.dto.MarketDataDTO;
 import com.marketatlas.market.dto.MarketDataResponseDTO;
+import com.marketatlas.common.exception.ProviderRateLimitException;
 import org.springframework.web.client.RestClient;
 import org.springframework.beans.factory.annotation.Value;
 import com.marketatlas.common.exception.MarketDataProviderException;
@@ -61,6 +62,12 @@ public class TwelveDataMarketDataClient implements MarketDataClient {
                         && body.contains(NO_DATA_MESSAGE)) {
                     return List.of();
                 }
+                if (exception.getStatusCode().value() == 429) {
+                    var headers = exception.getResponseHeaders();
+                    throw new ProviderRateLimitException("Twelve Data rate limit exceeded (HTTP 429).",
+                            ProviderRateLimitException.parseRetryAfter(
+                                    headers == null ? null : headers.getFirst("Retry-After")));
+                }
 
                 throw new MarketDataProviderException(
                         "Twelve Data returned an HTTP error: "
@@ -84,6 +91,13 @@ public class TwelveDataMarketDataClient implements MarketDataClient {
                     && response.getMessage() != null
                     && response.getMessage().contains(NO_DATA_MESSAGE)) {
                 return List.of();
+            }
+
+            if ("error".equalsIgnoreCase(response.getStatus())
+                    && "429".equals(String.valueOf(response.getCode()))) {
+                throw new ProviderRateLimitException(
+                        "Twelve Data rate limit exceeded (error code 429).",
+                        ProviderRateLimitException.parseRetryAfter(null));
             }
 
             if ("error".equalsIgnoreCase(response.getStatus())) {
