@@ -8,6 +8,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.beans.factory.annotation.Value;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Clock;
@@ -26,10 +27,14 @@ public class UserService {
     private final PasswordEncoder passwordEncoder;
     private final Clock clock;
 
-    public UserService(AppUserRepository userRepository, PasswordEncoder passwordEncoder, Clock clock) {
+    private final String reservedUsername;
+
+    public UserService(AppUserRepository userRepository, PasswordEncoder passwordEncoder, Clock clock,
+                       @Value("${marketatlas.security.admin-username:admin}") String adminUsername) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.clock = clock;
+        this.reservedUsername = adminUsername.trim().toLowerCase(Locale.ROOT);
     }
 
     /** Sign-up always creates a plain USER; no code path creates an admin. */
@@ -49,7 +54,7 @@ public class UserService {
                     "Password must be at most " + MAX_PASSWORD_BYTES + " bytes");
         }
 
-        if (userRepository.existsByUsername(normalized)) {
+        if (normalized.equals(reservedUsername) || userRepository.existsByUsername(normalized)) {
             throw new DuplicateResourceException("Username is already taken");
         }
         try {
