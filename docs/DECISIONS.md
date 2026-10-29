@@ -30,15 +30,21 @@ A short record of what this project is, what it deliberately is not, and why.
 
 - Scheduled refresh jobs are off by default (`marketatlas.refresh.enabled`).
 - Schema changes go through Flyway only; tests run with `ddl-auto=validate` so entity/migration drift fails the build.
-- All non-GET requests require an admin login (HTTP Basic, stateless). The password comes from the environment and the app will not start without it.
-- Secrets live in the untracked `.env`; log messages never include provider error causes, because they can contain request URLs with keys.
 - CI runs the full suite (Testcontainers PostgreSQL) on every pull request.
-- - Public reads are database-only. Anything that can call a data provider (market-data history, series refresh) or exposes account data requires the admin login.
+- Secrets live in the untracked `.env`; log messages never include provider error causes, because they can contain request URLs with keys.
+- **Authentication**: HTTP Basic, stateless, BCrypt. No JWT or sessions: for a single-service API this avoids token storage, signing keys and revocation, which are easy to get wrong. CSRF protection is off because there are no cookies or sessions to ride on.
+- **Users**: sign-up (`POST /api/users`) is open and always creates a USER. Passwords need at least 12 characters and at most 72 bytes (BCrypt's input limit). The bootstrap admin comes from `ADMIN_USERNAME` / `ADMIN_PASSWORD` in the environment, is not a database row, has its username reserved at sign-up, and the app will not start without its password.
+- **Authorization** (first matching rule wins): sign-up is public; `/api/accounts/**` needs a logged-in user; `/api/market-data/**` and every other non-GET request are admin-only; the remaining GET reads are public.
+- Public reads are database-only. Anything that can call a data provider (market-data history, series refresh) needs the admin login.
+- **Ownership**: every account has an owner. Users see and trade only their own accounts; another user's account answers 404, identical to a missing one, so account ids cannot be probed. Admin can see all accounts. Accounts that existed before ownership belong to `admin`.
+- **Rate limiting** (in memory, per instance): sign-up 5 per hour per IP; failed logins 10 per 15 minutes per IP, and while an IP is locked out even correct credentials from it are refused; orders 30 per minute per user. Blocked calls get 429 with `Retry-After`. The client IP is the socket address only: `X-Forwarded-For` is ignored because clients can forge it. Failures are keyed by IP, not username, so nobody can lock a victim out of their account.
+- 401, 403 and 429 responses are `application/problem+json` and echo nothing from the request.
+- Provider rate limits (429 from Twelve Data or FRED) surface as 503 with `Retry-After`; refresh jobs stop for that run and never retry in a loop.
 
 ## Known limits and planned work
 
-- Single admin user only; per-user accounts come with the trading simulation.
-- No retry or backoff on provider rate limits (HTTP 429) yet.
-- Lists are not paginated yet.
+- Rate-limit state is per instance and resets on restart; running several instances would need a shared store. Users behind one shared IP share the sign-up and failed-login budgets. Behind a trusted proxy, the client-IP source must be configured first.
+- No password reset, email verification or account deletion; usernames are permanent.
+- Only trade history is paginated so far.
 - Whether AI features are part of the core is undecided.
-- - Daily bars only: the bar for the current day is partial while the market is open, and market orders fill at the latest stored close, so a fill today uses an in-progress price.
+- Daily bars only: the bar for the current day is partial while the market is open, and market orders fill at the latest stored close, so a fill today uses an in-progress price.
