@@ -120,12 +120,12 @@ class OrderConcurrencyTest {
 
     private void assertCash(String expected, Long accountId) {
         assertEquals(0, new BigDecimal(expected)
-                .compareTo(accountService.get(accountId).getCashBalance()));
+                .compareTo(accountService.get(accountId, new Caller("admin", true)).getCashBalance()));
     }
 
     @Test
     void concurrentBuysNeverOverspendTheAccount() throws Exception {
-        Account account = accountService.create("Race", "USD", new BigDecimal("10000"));
+        Account account = accountService.create(new Caller("admin", true), "Race", "USD", new BigDecimal("10000"));
         Long id = account.getId();
 
         // each buy costs 2000 + 1 commission, so exactly 4 of 8 fit into 10000
@@ -143,7 +143,7 @@ class OrderConcurrencyTest {
 
     @Test
     void concurrentSellsNeverSellMoreThanHeld() throws Exception {
-        Account account = accountService.create("Race", "USD", new BigDecimal("10000"));
+        Account account = accountService.create(new Caller("admin", true), "Race", "USD", new BigDecimal("10000"));
         Long id = account.getId();
         orderService.placeMarketOrder(id, assetId, TradeSide.BUY, new BigDecimal("3"), "seed");
 
@@ -162,7 +162,7 @@ class OrderConcurrencyTest {
 
     @Test
     void concurrentRetriesWithOneKeyTradeOnlyOnce() throws Exception {
-        Account account = accountService.create("Race", "USD", new BigDecimal("10000"));
+        Account account = accountService.create(new Caller("admin", true), "Race", "USD", new BigDecimal("10000"));
         Long id = account.getId();
 
         List<Callable<OrderService.OrderResult>> tasks = new ArrayList<>();

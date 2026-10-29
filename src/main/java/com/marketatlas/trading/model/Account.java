@@ -33,15 +33,20 @@ public class Account {
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
+    @Column(name = "owner_username", nullable = false, length = 50)
+    private String ownerUsername;
+
     protected Account() {
     }
 
-    public Account(String name, String currency, BigDecimal startingBalance, Instant createdAt) {
+    public Account(String name, String currency, BigDecimal startingBalance, Instant createdAt,
+                   String ownerUsername) {
         this.name = name;
         this.currency = currency;
         this.startingBalance = startingBalance;
         this.cashBalance = startingBalance;
         this.createdAt = createdAt;
+        this.ownerUsername = ownerUsername;
     }
 
     public Long getId() { return id; }
@@ -50,6 +55,7 @@ public class Account {
     public BigDecimal getStartingBalance() { return startingBalance; }
     public BigDecimal getCashBalance() { return cashBalance; }
     public Instant getCreatedAt() { return createdAt; }
+    public String getOwnerUsername() { return ownerUsername; }
 
     public void debit(BigDecimal amount) {
         if (amount.signum() < 0 || cashBalance.compareTo(amount) < 0) {
