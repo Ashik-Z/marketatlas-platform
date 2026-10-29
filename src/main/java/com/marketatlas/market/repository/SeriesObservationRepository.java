@@ -16,6 +16,7 @@ public interface SeriesObservationRepository extends JpaRepository<SeriesObserva
 
     List<SeriesObservation> findBySeriesAndObservationDateBetweenOrderByObservationDateAsc(
             DataSeries series, LocalDate from, LocalDate to);
+    List<SeriesObservation> findBySeriesOrderByObservationDateAsc(DataSeries series);
 
     @Modifying
     @Query(value = """
