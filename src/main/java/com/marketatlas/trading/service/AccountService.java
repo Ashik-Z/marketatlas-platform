@@ -22,19 +22,23 @@ public class AccountService {
     }
 
     @Transactional
-    public Account create(String name, String currency, BigDecimal startingBalance) {
+    public Account create(Caller caller, String name, String currency, BigDecimal startingBalance) {
         return accountRepository.save(
-                new Account(name.trim(), currency, startingBalance, clock.instant()));
+                new Account(name.trim(), currency, startingBalance, clock.instant(), caller.username()));
     }
 
+    /** Owner or admin only. Anyone else gets the same 404 as a missing account. */
     @Transactional(readOnly = true)
-    public Account get(Long id) {
+    public Account get(Long id, Caller caller) {
         return accountRepository.findById(id)
+                .filter(account -> caller.admin() || account.getOwnerUsername().equals(caller.username()))
                 .orElseThrow(() -> new ResourceNotFoundException("Account not found: " + id));
     }
 
     @Transactional(readOnly = true)
-    public List<Account> list() {
-        return accountRepository.findAll();
+    public List<Account> list(Caller caller) {
+        return caller.admin()
+                ? accountRepository.findAll()
+                : accountRepository.findByOwnerUsernameOrderByIdAsc(caller.username());
     }
 }

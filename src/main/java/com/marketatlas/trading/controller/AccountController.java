@@ -3,6 +3,7 @@ package com.marketatlas.trading.controller;
 import com.marketatlas.trading.dto.AccountResponse;
 import com.marketatlas.trading.dto.CreateAccountRequest;
 import com.marketatlas.trading.service.AccountService;
+import com.marketatlas.trading.service.Caller;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -12,6 +13,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.core.Authentication;
 
 import java.util.List;
 
@@ -26,18 +28,20 @@ public class AccountController {
     }
 
     @PostMapping
-    public ResponseEntity<AccountResponse> create(@Valid @RequestBody CreateAccountRequest request) {
-        var account = accountService.create(request.name(), request.currency(), request.startingBalance());
+    public ResponseEntity<AccountResponse> create(@Valid @RequestBody CreateAccountRequest request,
+                                                  Authentication authentication) {
+        var account = accountService.create(Caller.from(authentication),
+                request.name(), request.currency(), request.startingBalance());
         return ResponseEntity.status(HttpStatus.CREATED).body(AccountResponse.from(account));
     }
 
     @GetMapping
-    public List<AccountResponse> list() {
-        return accountService.list().stream().map(AccountResponse::from).toList();
+    public List<AccountResponse> list(Authentication authentication) {
+        return accountService.list(Caller.from(authentication)).stream().map(AccountResponse::from).toList();
     }
 
     @GetMapping("/{id}")
-    public AccountResponse get(@PathVariable Long id) {
-        return AccountResponse.from(accountService.get(id));
+    public AccountResponse get(@PathVariable Long id, Authentication authentication) {
+        return AccountResponse.from(accountService.get(id, Caller.from(authentication)));
     }
 }

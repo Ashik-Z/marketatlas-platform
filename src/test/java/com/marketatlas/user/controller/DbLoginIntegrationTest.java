@@ -46,7 +46,7 @@ class DbLoginIntegrationTest {
         signUp("login.user");
 
         // 403 (not 401) proves authentication worked and only the role is insufficient.
-        mockMvc.perform(get("/api/accounts/999999").header("Authorization", basic("login.user", PASSWORD)))
+        mockMvc.perform(get("/api/market-data/history").header("Authorization", basic("login.user", PASSWORD)))
                 .andExpect(status().isForbidden())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON));
     }
@@ -55,7 +55,7 @@ class DbLoginIntegrationTest {
     void loginIsCaseInsensitiveOnUsername() throws Exception {
         signUp("case.user");
 
-        mockMvc.perform(get("/api/accounts/999999").header("Authorization", basic("CASE.User", PASSWORD)))
+        mockMvc.perform(get("/api/market-data/history").header("Authorization", basic("CASE.User", PASSWORD)))
                 .andExpect(status().isForbidden());
     }
 
@@ -74,10 +74,10 @@ class DbLoginIntegrationTest {
     }
 
     @Test
-    void userCannotCreateAccounts() throws Exception {
+    void userCannotCreateAssets() throws Exception {
         signUp("no.create");
 
-        mockMvc.perform(post("/api/accounts")
+        mockMvc.perform(post("/api/assets")
                         .header("Authorization", basic("no.create", PASSWORD))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{}"))
