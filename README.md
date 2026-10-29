@@ -60,6 +60,8 @@ Docker must be running (tests use Testcontainers with PostgreSQL).
 
 Public reads come from the database only. Another user's account answers 404, the same as a missing one.
 
+Interactive API docs (Swagger UI) are at `http://localhost:8080/swagger-ui.html` and the OpenAPI spec at `/v3/api-docs`; both are public.
+
 ### Example
 
 ```

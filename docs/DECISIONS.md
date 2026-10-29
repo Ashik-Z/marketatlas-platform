@@ -42,6 +42,7 @@ A short record of what this project is, what it deliberately is not, and why.
 - **Rate limiting** (in memory, per instance): sign-up 5 per hour per IP; failed logins 10 per 15 minutes per IP, and while an IP is locked out even correct credentials from it are refused; orders 30 per minute per user. Blocked calls get 429 with `Retry-After`. The client IP is the socket address only: `X-Forwarded-For` is ignored because clients can forge it. Failures are keyed by IP, not username, so nobody can lock a victim out of their account.
 - 401, 403 and 429 responses are `application/problem+json` and echo nothing from the request.
 - Provider rate limits (429 from Twelve Data or FRED) surface as 503 with `Retry-After`; refresh jobs stop for that run and never retry in a loop.
+- **API docs**: the OpenAPI spec (`/v3/api-docs`) and Swagger UI are public because they describe the API and expose no data. Summaries, tags and the secured/public marking are generated in one place (`OpenApiConfig`), and a test checks that the documented security matches what an anonymous caller actually gets, so the docs cannot drift from the real rules. A deployment can switch them off with `springdoc.api-docs.enabled=false` and `springdoc.swagger-ui.enabled=false`.
 
 ## Known limits and planned work
 
