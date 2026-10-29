@@ -5,6 +5,8 @@ import com.marketatlas.trading.dto.TradeResponse;
 import com.marketatlas.trading.service.OrderService;
 import com.marketatlas.trading.service.AccountService;
 import com.marketatlas.trading.service.Caller;
+import com.marketatlas.common.exception.RateLimitExceededException;
+import com.marketatlas.common.ratelimit.RateLimiter;
 import org.springframework.security.core.Authentication;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -22,10 +24,12 @@ public class OrderController {
 
     private final OrderService orderService;
     private final AccountService accountService;
+    private final RateLimiter orderRateLimiter;
 
-    public OrderController(OrderService orderService, AccountService accountService) {
+    public OrderController(OrderService orderService, AccountService accountService, RateLimiter orderRateLimiter) {
         this.orderService = orderService;
         this.accountService = accountService;
+        this.orderRateLimiter = orderRateLimiter;
     }
 
     @PostMapping
@@ -34,7 +38,11 @@ public class OrderController {
             @RequestHeader("Idempotency-Key") String idempotencyKey,
             @Valid @RequestBody PlaceOrderRequest request,
             Authentication authentication) {
-        accountService.get(accountId, Caller.from(authentication));
+        Caller caller = Caller.from(authentication);
+        accountService.get(accountId, caller);
+        if (!orderRateLimiter.tryAcquire(caller.username())) {
+            throw new RateLimitExceededException(orderRateLimiter.retryAfterSeconds(caller.username()));
+        }
         var result = orderService.placeMarketOrder(
                 accountId, request.assetId(), request.side(), request.quantity(), idempotencyKey);
         HttpStatus status = result.replayed() ? HttpStatus.OK : HttpStatus.CREATED;

@@ -84,6 +84,20 @@ public class GlobalExceptionHandler {
                 .body(problemDetail);
     }
 
+    @ExceptionHandler(RateLimitExceededException.class)
+    public ResponseEntity<ProblemDetail> handleRateLimitExceeded(RateLimitExceededException exception) {
+
+        ProblemDetail problemDetail =
+                ProblemDetail.forStatus(HttpStatus.TOO_MANY_REQUESTS);
+
+        problemDetail.setTitle("Too Many Requests");
+        problemDetail.setDetail("Too many requests. Try again later.");
+
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .header(HttpHeaders.RETRY_AFTER, String.valueOf(exception.getRetryAfterSeconds()))
+                .body(problemDetail);
+    }
+
     @ExceptionHandler(MissingServletRequestParameterException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ProblemDetail handleMissingServletRequestParameter(
