@@ -8,6 +8,10 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.startsWith;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
@@ -76,5 +80,19 @@ class SecurityIntegrationTest {
                         .param("symbol", "AAPL").param("startDate", "2026-10-01")
                         .param("endDate", "2026-10-02").param("interval", "1day"))
                 .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void authenticationFailuresUseTheProblemDetailShape() throws Exception {
+        mockMvc.perform(post(REFRESH))
+                .andExpect(status().isUnauthorized())
+                .andExpect(header().string("WWW-Authenticate", startsWith("Basic")))
+                .andExpect(header().string("Content-Type", containsString("application/problem+json")))
+                .andExpect(jsonPath("$.title").value("Unauthorized"))
+                .andExpect(jsonPath("$.status").value(401));
+
+        mockMvc.perform(post(REFRESH).header("Authorization", basic("admin", "wrong")))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.title").value("Unauthorized"));
     }
 }
