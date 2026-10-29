@@ -24,6 +24,7 @@ A short record of what this project is, what it deliberately is not, and why.
 - Provider calls never run inside a database transaction.
 - Missing provider values are stored as NULL, never as zero (FRED's "." marker).
 - Provider bars dated Saturday or Sunday are dropped before saving: equities and spot metals have no full weekend session, and the provider has returned partial weekend rows (once the same Sunday twice). A duplicate on a weekday is still rejected as a provider fault rather than guessed.
+- Inflation-adjusted (real) prices (`GET /api/assets/{id}/real-prices`) deflate closes with US CPI-U, not seasonally adjusted (FRED CPIAUCNS), because seasonally adjusted series are revised after publication and would silently change past results. CPI is monthly and lagged: a bar in a month without a CPI value reuses the latest earlier month and is flagged `cpiEstimated`. Live data showed this twice: the newest month, and October 2025, which FRED has no value for, so that month's bars carry September's CPI. Bars before the first CPI month get no real value rather than a guess.
 - Provider data lags (monthly CPI, daily oil): series are refreshed with a lookback window, and monthly series use a longer one.
 - Vintages (historical revisions) are out of scope: the latest value overwrites and `fetched_at` records when it was fetched.
 
@@ -50,3 +51,4 @@ A short record of what this project is, what it deliberately is not, and why.
 - Whether AI features are part of the core is undecided.
 - Daily bars only: the bar for the current day is partial while the market is open, and market orders fill at the latest stored close, so a fill today uses an in-progress price.
 - Weekend bars already stored before this rule (from earlier fetches) are not removed; they are partial sessions and can be the latest close used for a fill or valuation.
+- Real prices cover USD assets only (US CPI); other currencies would need their own inflation series.
