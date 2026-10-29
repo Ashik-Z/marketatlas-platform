@@ -119,8 +119,8 @@ public class MarketDataServiceImpl implements MarketDataService {
             DateRange toFetch = new DateRange(
                     missing.getFirst().start(), missing.getLast().end());
 
-            List<MarketDataDTO> fetched = marketDataClient.getHistoricalData(
-                    normalizedSymbol, toFetch.start(), toFetch.end(), interval);
+            List<MarketDataDTO> fetched = withoutWeekends(marketDataClient.getHistoricalData(
+                    normalizedSymbol, toFetch.start(), toFetch.end(), interval));
 
             rejectDuplicateTimestamps(fetched);
 
@@ -140,6 +140,27 @@ public class MarketDataServiceImpl implements MarketDataService {
                         row.getVolume(),
                         row.getTimestamp()))
                 .toList();
+    }
+
+    private static final org.slf4j.Logger LOG =
+            org.slf4j.LoggerFactory.getLogger(MarketDataServiceImpl.class);
+
+    /**
+     * Equities and spot metals have no complete weekend session, yet the provider can return partial
+     * Saturday/Sunday rows (sometimes twice for the same date). They are dropped rather than stored.
+     */
+    private List<MarketDataDTO> withoutWeekends(List<MarketDataDTO> data) {
+        List<MarketDataDTO> weekdays = data.stream()
+                .filter(bar -> {
+                    java.time.DayOfWeek day = bar.getTimestamp().getDayOfWeek();
+                    return day != java.time.DayOfWeek.SATURDAY && day != java.time.DayOfWeek.SUNDAY;
+                })
+                .toList();
+        int skipped = data.size() - weekdays.size();
+        if (skipped > 0) {
+            LOG.info("Skipped {} weekend bar(s) returned by the provider", skipped);
+        }
+        return weekdays;
     }
 
     private void rejectDuplicateTimestamps(List<MarketDataDTO> data) {

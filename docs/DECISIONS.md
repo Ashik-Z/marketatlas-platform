@@ -23,6 +23,7 @@ A short record of what this project is, what it deliberately is not, and why.
 - Writes are idempotent batch upserts (`ON CONFLICT DO UPDATE`), one statement per batch.
 - Provider calls never run inside a database transaction.
 - Missing provider values are stored as NULL, never as zero (FRED's "." marker).
+- Provider bars dated Saturday or Sunday are dropped before saving: equities and spot metals have no full weekend session, and the provider has returned partial weekend rows (once the same Sunday twice). A duplicate on a weekday is still rejected as a provider fault rather than guessed.
 - Provider data lags (monthly CPI, daily oil): series are refreshed with a lookback window, and monthly series use a longer one.
 - Vintages (historical revisions) are out of scope: the latest value overwrites and `fetched_at` records when it was fetched.
 
@@ -48,3 +49,4 @@ A short record of what this project is, what it deliberately is not, and why.
 - Only trade history is paginated so far.
 - Whether AI features are part of the core is undecided.
 - Daily bars only: the bar for the current day is partial while the market is open, and market orders fill at the latest stored close, so a fill today uses an in-progress price.
+- Weekend bars already stored before this rule (from earlier fetches) are not removed; they are partial sessions and can be the latest close used for a fill or valuation.
