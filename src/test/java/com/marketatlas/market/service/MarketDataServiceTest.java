@@ -398,4 +398,40 @@ class MarketDataServiceTest {
 
         verify(coverageService, never()).saveFetchedRange(any(), any(), any());
     }
+
+    @Test
+    void shouldDropWeekendBarsIncludingWeekendDuplicatesBeforeSaving() {
+        stubApple();
+        when(coverageService.findMissingRanges(7L, range(oct(1), oct(5))))
+                .thenReturn(List.of(range(oct(1), oct(5))));
+        when(marketDataClient.getHistoricalData("AAPL", oct(1), oct(5), "1day"))
+                .thenReturn(List.of(
+                        dto(101, oct(1)),
+                        dto(102, oct(3)),   // Saturday
+                        dto(103, oct(4)),   // Sunday
+                        dto(104, oct(4)),   // Sunday again: must not trigger the duplicate rejection
+                        dto(105, oct(5))));
+
+        marketDataService.fetchHistoricalData("AAPL", oct(1), oct(5), "1day");
+
+        @SuppressWarnings("unchecked")
+        org.mockito.ArgumentCaptor<List<MarketDataDTO>> saved = org.mockito.ArgumentCaptor.forClass(List.class);
+        verify(coverageService).saveFetchedRange(any(), any(), saved.capture());
+        assertEquals(List.of(oct(1), oct(5)),
+                saved.getValue().stream().map(MarketDataDTO::getTimestamp).toList());
+    }
+
+    @Test
+    void shouldStillRejectDuplicateWeekdaysWhenWeekendBarsArePresent() {
+        stubApple();
+        when(coverageService.findMissingRanges(7L, range(oct(2), oct(4))))
+                .thenReturn(List.of(range(oct(2), oct(4))));
+        when(marketDataClient.getHistoricalData("AAPL", oct(2), oct(4), "1day"))
+                .thenReturn(List.of(dto(101, oct(2)), dto(102, oct(2)), dto(103, oct(3))));
+
+        assertThrows(MarketDataProviderException.class,
+                () -> marketDataService.fetchHistoricalData("AAPL", oct(2), oct(4), "1day"));
+
+        verify(coverageService, never()).saveFetchedRange(any(), any(), any());
+    }
 }
