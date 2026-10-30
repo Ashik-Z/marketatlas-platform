@@ -20,7 +20,9 @@ public record BacktestResponse(
         BacktestMetrics.Metrics benchmark,
         List<TradeView> trades,
         List<CurvePoint> equityCurve,
-        List<CurvePoint> benchmarkEquityCurve) {
+        List<CurvePoint> benchmarkEquityCurve,
+        RealTermsCalculator.RealTerms realTerms,
+        String realTermsNote) {
 
     public record TradeView(LocalDate date, String side, BigDecimal quantity, BigDecimal price,
                             BigDecimal commission) {

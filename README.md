@@ -57,6 +57,7 @@ Docker must be running (tests use Testcontainers with PostgreSQL).
 | `POST/GET /api/accounts`, `GET /api/accounts/{id}` | logged-in user | Own accounts only (admin sees all) |
 | `POST /api/accounts/{id}/orders` | logged-in user | Place a market order (`Idempotency-Key` header required) |
 | `GET /api/accounts/{id}/portfolio`, `/trades` | logged-in user | Valuation with P&L; paginated trade history |
+| `POST /api/assets/{id}/backtest` | logged-in user | Backtest a strategy against buy-and-hold, in nominal and real terms |
 
 Public reads come from the database only. Another user's account answers 404, the same as a missing one.
 
@@ -78,6 +79,28 @@ curl -u alice:a-long-password-123 -X POST http://localhost:8080/api/accounts/1/o
 ```
 
 On Windows PowerShell use `curl.exe`, since `curl` is an alias for another command there. Passwords need at least 12 characters.
+
+## Backtesting
+
+`POST /api/assets/{id}/backtest` replays a strategy on the stored daily bars (no provider calls) and always compares it with buy-and-hold under identical costs. It needs a login and is limited to 10 runs per minute per user.
+
+```json
+{ "startDate": "2024-01-01", "endDate": "2026-10-30", "strategy": "SMA_CROSSOVER",
+  "shortWindow": 20, "longWindow": 50, "initialCash": 100000, "slippageBps": 5 }
+```
+
+Gold Spot, 2024-01 to 2026-10, $1 commission per order, 5 bps slippage:
+
+| | SMA 20/50 | Buy and hold |
+|---|---|---|
+| Total return | 74.22% | 97.20% |
+| Real return (start-date dollars) | 59.48% | 80.51% |
+| Max drawdown | 21.06% | 26.43% |
+| Annualized volatility | 18.46% | 21.23% |
+| Time in market | 68.07% | 99.86% |
+| Trades | 12 | 1 |
+
+US CPI rose 9.25% over the period, so both beat inflation; the trend rule gave up return for a shallower drawdown. One asset, one period: an illustration, not a recommendation. Rules and limits are in `docs/DECISIONS.md`.
 
 ## Design notes
 
