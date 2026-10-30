@@ -36,6 +36,7 @@ public class OpenApiConfig {
             Map.entry("POST /api/issuers", "Create an issuer (admin)"),
             Map.entry("GET /api/market-data/history", "Fetch and store daily history (admin; can call Twelve Data)"),
             Map.entry("GET /api/assets/{assetId}/real-prices", "Inflation-adjusted prices in base-month dollars (US CPI, USD assets)"),
+            Map.entry("POST /api/assets/{assetId}/backtest", "Backtest a strategy on stored daily bars, with a buy-and-hold benchmark (login required)"),
             Map.entry("GET /api/series", "List inflation and commodity series"),
             Map.entry("GET /api/series/{id}/observations", "Series observations in a date range"),
             Map.entry("POST /api/series/{id}/refresh", "Refresh a series from FRED (admin)"),
@@ -78,6 +79,10 @@ public class OpenApiConfig {
                                     new ApiResponse().description("Missing or wrong credentials"));
                         }
                     }
+                    if (key.equals("POST /api/assets/{assetId}/backtest") && operation.getResponses() != null) {
+                        operation.getResponses().addApiResponse("404", new ApiResponse().description("Asset not found"));
+                        operation.getResponses().addApiResponse("429", new ApiResponse().description("Backtest rate limit exceeded; see Retry-After"));
+                    }
                     if (key.equals("POST /api/accounts/{accountId}/orders") && operation.getResponses() != null) {
                         operation.getResponses().addApiResponse("404",
                                 new ApiResponse().description("Account not found, or not yours"));
@@ -94,6 +99,7 @@ public class OpenApiConfig {
         if (path.startsWith("/api/accounts")) return "Paper trading";
         if (path.startsWith("/api/market-data")) return "Market data";
         if (path.endsWith("/real-prices")) return "Inflation";
+        if (path.endsWith("/backtest")) return "Backtesting";
         if (path.startsWith("/api/series")) return "Series";
         if (path.startsWith("/api/users")) return "Users";
         return "Reference data";
