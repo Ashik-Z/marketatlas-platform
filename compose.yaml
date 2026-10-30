@@ -33,5 +33,15 @@ services:
       FRED_API_KEY: ${FRED_API_KEY:?Set FRED_API_KEY in your .env file}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:?Set ADMIN_PASSWORD in your .env file}
 
+  marketatlas-ui:
+    restart: unless-stopped
+    build: ./marketatlas-ui
+    image: marketatlas-ui:local
+    depends_on:
+      - marketatlas
+    ports:
+      - "8081:8081"
+    environment:
+      MARKETATLAS_API_BASE_URL: http://marketatlas:8080
 volumes:
   marketatlas-data:
