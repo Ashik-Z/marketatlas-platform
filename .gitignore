@@ -35,3 +35,4 @@ application-local.properties
 
 .env
 prices.sql
+DOCKER_UP_COMMAND.txt
