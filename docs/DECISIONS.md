@@ -63,3 +63,4 @@ A short record of what this project is, what it deliberately is not, and why.
 - Daily bars only: the bar for the current day is partial while the market is open, and market orders fill at the latest stored close, so a fill today uses an in-progress price.
 - Weekend bars already stored before this rule (from earlier fetches) are not removed; they are partial sessions and can be the latest close used for a fill or valuation.
 - Real prices cover USD assets only (US CPI); other currencies would need their own inflation series.
+- **Silver is not tracked.** Twelve Data serves `XAG/USD` only on its Grow and Venture plans; on the free plan it answers 404, which the API reports as 502. Silver was removed from the local database. Registering it again needs a paid plan or another provider; gold works on the free plan.
