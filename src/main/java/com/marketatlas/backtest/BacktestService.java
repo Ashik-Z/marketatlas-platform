@@ -6,6 +6,7 @@ import com.marketatlas.market.entity.Asset;
 import com.marketatlas.market.entity.MarketData;
 import com.marketatlas.market.repository.AssetRepository;
 import com.marketatlas.market.repository.MarketDataRepository;
+import com.marketatlas.market.service.RealPriceService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,13 +25,16 @@ public class BacktestService {
 
     private final AssetRepository assetRepository;
     private final MarketDataRepository marketDataRepository;
+    private final RealPriceService realPriceService;
     private final BigDecimal defaultCommission;
 
     public BacktestService(AssetRepository assetRepository,
                            MarketDataRepository marketDataRepository,
+                           RealPriceService realPriceService,
                            @Value("${marketatlas.trading.commission:1.00}") BigDecimal defaultCommission) {
         this.assetRepository = assetRepository;
         this.marketDataRepository = marketDataRepository;
+        this.realPriceService = realPriceService;
         this.defaultCommission = defaultCommission;
     }
 
@@ -73,6 +77,18 @@ public class BacktestService {
         Backtest.Result result = BacktestEngine.run(bars, strategy, params);
         Backtest.Result benchmark = BacktestEngine.run(bars, Strategies.buyAndHold(), params);
 
+        RealTermsCalculator.RealTerms realTerms = null;
+        String realTermsNote = null;
+        if (!"USD".equals(asset.getCurrency())) {
+            realTermsNote = "Real terms use US CPI, so they are only available for USD assets";
+        } else {
+            realTerms = RealTermsCalculator.compute(result.equityCurve(), benchmark.equityCurve(),
+                    realPriceService.cpiByMonthOrEmpty());
+            if (realTerms == null) {
+                realTermsNote = "No CPIAUCNS data at or before the first bar; refresh the series first";
+            }
+        }
+
         boolean curves = Boolean.TRUE.equals(request.includeEquityCurve());
         return new BacktestResponse(
                 asset.getId(), asset.getName(), asset.getCurrency(), strategy.name(),
@@ -84,7 +100,8 @@ public class BacktestService {
                                 t.price(), t.commission()))
                         .toList(),
                 curves ? curve(result) : null,
-                curves ? curve(benchmark) : null);
+                curves ? curve(benchmark) : null,
+                realTerms, realTermsNote);
     }
 
     private static boolean usable(Double price) {

@@ -44,6 +44,16 @@ A short record of what this project is, what it deliberately is not, and why.
 - Provider rate limits (429 from Twelve Data or FRED) surface as 503 with `Retry-After`; refresh jobs stop for that run and never retry in a loop.
 - **API docs**: the OpenAPI spec (`/v3/api-docs`) and Swagger UI are public because they describe the API and expose no data. Summaries, tags and the secured/public marking are generated in one place (`OpenApiConfig`), and a test checks that the documented security matches what an anonymous caller actually gets, so the docs cannot drift from the real rules. A deployment can switch them off with `springdoc.api-docs.enabled=false` and `springdoc.swagger-ui.enabled=false`.
 
+## Backtesting
+
+- **Engine**: pure and deterministic, exact `BigDecimal` arithmetic, long-only on daily bars. A decision made after the close of bar i fills at the open of bar i+1 (no look-ahead); the decision after the last bar is never executed.
+- **Costs**: flat commission per order (default `marketatlas.trading.commission`, the same as the paper-trading simulator) and slippage in basis points against the trader. A buy spends all cash minus commission, rounded down (whole shares for equities, 6 decimals for commodities); a sell exits fully. A buy that cannot afford one unit, or a sale that does not cover its commission, is a rejected order and is counted.
+- **Benchmark**: buy-and-hold under identical costs is always reported next to the strategy.
+- **Metrics**: total and annualized return (annualized only for spans of at least 90 days), max drawdown with peak and trough dates, annualized volatility (sample stdev of daily returns x sqrt(252)), commission paid, time in market, trades, rejected orders. No Sharpe ratio: it needs a risk-free-rate assumption we do not want to hide.
+- **Real terms**: equity is deflated to start-month dollars with CPIAUCNS; a month without a published CPI reuses the latest earlier value and sets `cpiEstimated`. USD assets only. If CPI data is missing the backtest still runs, with `realTerms` null and a `realTermsNote`.
+- **Data and access**: stored bars only, never a provider call. Weekend bars and bars with missing or non-positive prices are skipped and reported as `skippedBars`; at least 2 bars are needed; the range is capped at 3660 days. USER or ADMIN login, 10 per minute per user, 429 with `Retry-After`.
+- **Limits**: daily bars only (no intraday fills or order book), prices used as stored (no dividend adjustment), one asset per run, no shorting, no taxes. A backtest describes the past; it is not a prediction.
+
 ## Known limits and planned work
 
 - Rate-limit state is per instance and resets on restart; running several instances would need a shared store. Users behind one shared IP share the sign-up and failed-login budgets. Behind a trusted proxy, the client-IP source must be configured first.
