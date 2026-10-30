@@ -102,6 +102,12 @@ Gold Spot, 2024-01 to 2026-10, $1 commission per order, 5 bps slippage:
 
 US CPI rose 9.25% over the period, so both beat inflation; the trend rule gave up return for a shallower drawdown. One asset, one period: an illustration, not a recommendation. Rules and limits are in `docs/DECISIONS.md`.
 
+## Web UI
+
+`marketatlas-ui/` is a separate Vaadin 25 app (port 8081) that talks to the API; the API works on its own without it. `docker compose up -d` starts the database, the API (8080) and the UI (8081). Open http://localhost:8081, sign up or log in. The UI keeps your credentials only in its server-side session (never in the browser), and logout ends that session.
+
+For UI development, run `.\mvnw.cmd spring-boot:run` inside `marketatlas-ui/` while the API is up on port 8080.
+
 ## Design notes
 
 Decisions, trade-offs and known limits are written down in [docs/DECISIONS.md](docs/DECISIONS.md): data handling, the security model, rate limits, and how provider quirks (weekend bars, rate limits, missing CPI months) are handled.

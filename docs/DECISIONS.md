@@ -54,6 +54,13 @@ A short record of what this project is, what it deliberately is not, and why.
 - **Data and access**: stored bars only, never a provider call. Weekend bars and bars with missing or non-positive prices are skipped and reported as `skippedBars`; at least 2 bars are needed; the range is capped at 3660 days. USER or ADMIN login, 10 per minute per user, 429 with `Retry-After`.
 - **Limits**: daily bars only (no intraday fills or order book), prices used as stored (no dividend adjustment), one asset per run, no shorting, no taxes. A backtest describes the past; it is not a prediction.
 
+## Web UI
+
+- **Separate app**: `marketatlas-ui/` (Vaadin 25, Spring Boot 4.1.1) only calls the public REST API, so the API stays stateless and unchanged, needs no CORS settings, and runs without the UI.
+- **Login**: the UI verifies credentials with an authenticated call (`GET /api/accounts`) and keeps only the Basic `Authorization` header in the server-side Vaadin session. The password is never stored in the browser or written to logs; errors are mapped to fixed, safe messages (the API's validation detail is shown for 400).
+- **Build**: dev mode uses the Vaadin dev server (default Maven profile); `-Pproduction` builds the optimized bundle without it, and the UI Docker image uses that.
+- **Limits**: all traffic runs over plain HTTP (fine on localhost; real deployments need HTTPS in front of both apps). The API rate-limits sign-ups and failed logins per IP and every UI request arrives from the UI server's IP, so one user's failed attempts can lock out others; the UI shows the 429 and its Retry-After. Sessions live in memory and are lost when the UI restarts.
+
 ## Known limits and planned work
 
 - Rate-limit state is per instance and resets on restart; running several instances would need a shared store. Users behind one shared IP share the sign-up and failed-login budgets. Behind a trusted proxy, the client-IP source must be configured first.
