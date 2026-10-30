@@ -1,0 +1,6 @@
+target/
+node_modules/
+frontend/generated/
+vite.generated.ts
+src/main/frontend/generated/
+
