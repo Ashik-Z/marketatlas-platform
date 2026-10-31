@@ -11,8 +11,11 @@ import org.springframework.web.client.RestClientResponseException;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
+import java.time.LocalDate;
+import java.time.YearMonth;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 /** Thin client for the MarketAtlas REST API. Never logs or echoes credentials. */
 @Component
@@ -71,6 +74,24 @@ public class ApiClient {
         }
     }
 
+    /** Inflation-adjusted closes for one asset. Public endpoint; baseMonth is optional. */
+    public RealPrices realPrices(Long assetId, LocalDate startDate, LocalDate endDate, YearMonth baseMonth) {
+        try {
+            return rest.get()
+                    .uri(b -> b.path("/api/assets/{id}/real-prices")
+                            .queryParam("startDate", startDate)
+                            .queryParam("endDate", endDate)
+                            .queryParamIfPresent("baseMonth", Optional.ofNullable(baseMonth))
+                            .build(assetId))
+                    .retrieve()
+                    .body(RealPrices.class);
+        } catch (RestClientResponseException e) {
+            throw map(e);
+        } catch (ResourceAccessException e) {
+            throw unavailable(e);
+        }
+    }
+
     private static final org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger(ApiClient.class);
 
     private static ApiException unavailable(Exception e) {
@@ -84,6 +105,7 @@ public class ApiClient {
         return switch (status) {
             case 400 -> new ApiException(ApiException.Kind.INVALID_INPUT, detailOr(e, "The input was not accepted."), null);
             case 401 -> new ApiException(ApiException.Kind.INVALID_CREDENTIALS, "Wrong username or password.", null);
+            case 404 -> new ApiException(ApiException.Kind.NOT_FOUND, detailOr(e, "Not found."), null);
             case 409 -> new ApiException(ApiException.Kind.DUPLICATE_USER, "That username is not available.", null);
             case 429 -> new ApiException(ApiException.Kind.RATE_LIMITED, "Too many attempts. Please wait and try again.",
                     retryAfter(e));

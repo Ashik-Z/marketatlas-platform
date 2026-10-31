@@ -26,6 +26,7 @@ public class MarketView extends VerticalLayout {
         grid.addColumn(AssetSummary::currency).setHeader("Currency");
         grid.addColumn(AssetSummary::unit).setHeader("Unit");
         grid.setAllRowsVisible(true);
+        grid.addItemClickListener(e -> getUI().ifPresent(ui -> ui.navigate(AssetDetailView.class, e.getItem().id())));
 
         try {
             List<AssetSummary> assets = api.listAssets();
