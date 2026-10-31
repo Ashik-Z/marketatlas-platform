@@ -4,3 +4,5 @@ frontend/generated/
 vite.generated.ts
 src/main/frontend/generated/
 
+
+.vaadin-node-tasks.lock
