@@ -7,6 +7,7 @@ import com.vaadin.flow.component.html.H1;
 import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.PageTitle;
+import com.vaadin.flow.router.RouterLink;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.server.VaadinSession;
 
@@ -24,6 +25,7 @@ public class HomeView extends VerticalLayout {
         add(new H1("MarketAtlas"),
                 new Paragraph("Signed in as " + session.username() + "."),
                 new Paragraph("Market data, inflation-adjusted prices, paper trading and backtesting."),
+                new RouterLink("Browse markets", MarketView.class),
                 logout);
     }
 }
