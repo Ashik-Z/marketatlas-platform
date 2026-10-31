@@ -106,6 +106,12 @@ US CPI rose 9.25% over the period, so both beat inflation; the trend rule gave u
 
 `marketatlas-ui/` is a separate Vaadin 25 app (port 8081) that talks to the API; the API works on its own without it. `docker compose up -d` starts the database, the API (8080) and the UI (8081). Open http://localhost:8081, sign up or log in. The UI keeps your credentials only in its server-side session (never in the browser), and logout ends that session.
 
+The UI pages:
+
+- **Markets** (`/market`) lists the assets; a row opens the asset page with the nominal vs inflation-adjusted price chart (USD assets only).
+- **Backtest lab** (`/backtest`) runs the backtester and shows strategy vs buy-and-hold metrics (nominal and real), the equity curves and the trades.
+- **Accounts** (`/accounts`, `/account/{id}`) create paper-trading accounts, show the portfolio with realized and unrealized P&L, place market orders and list the trade history.
+
 For UI development, run `.\mvnw.cmd spring-boot:run` inside `marketatlas-ui/` while the API is up on port 8080.
 
 ## Design notes
