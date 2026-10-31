@@ -1,0 +1,25 @@
+/* MarketAtlas tokens: dark only. Aura variables set the theme; --ma-* are read by the charts and P&L text. */
+:root:root {
+  --aura-color-scheme: dark;
+  --aura-background-color-light: #1a0f12;
+  --aura-background-color-dark: #1a0f12;
+  --aura-surface-color-solid: #261519;
+  --aura-surface-opacity: 0.9;
+  --aura-accent-color-light: #cfa84f;
+  --aura-accent-color-dark: #cfa84f;
+  --aura-accent-contrast-color-light: #1a0f12;
+  --aura-accent-contrast-color-dark: #1a0f12;
+
+  --vaadin-text-color: #cfa84f;
+  --vaadin-text-color-secondary: #9c8250;
+  --vaadin-border-color: rgba(207, 168, 79, 0.22);
+
+  --ma-nominal: #a9a4b8;
+  --ma-real: #cfa84f;
+  --ma-gain: #5ec59a;
+  --ma-loss: #e8707a;
+}
+
+html, body {
+  color: #cfa84f;
+}
