@@ -9,6 +9,7 @@ import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientResponseException;
 
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.time.LocalDate;
@@ -101,6 +102,49 @@ public class ApiClient {
                     .body(params)
                     .retrieve()
                     .body(BacktestResult.class);
+        } catch (RestClientResponseException e) {
+            throw map(e);
+        } catch (ResourceAccessException e) {
+            throw unavailable(e);
+        }
+    }
+
+    /** The caller's accounts (admin sees all). Needs login. */
+    public List<AccountSummary> listAccounts(String authorization) {
+        try {
+            List<AccountSummary> accounts = rest.get().uri("/api/accounts")
+                    .header(HttpHeaders.AUTHORIZATION, authorization)
+                    .retrieve()
+                    .body(new ParameterizedTypeReference<List<AccountSummary>>() { });
+            return accounts == null ? List.of() : accounts;
+        } catch (RestClientResponseException e) {
+            throw map(e);
+        } catch (ResourceAccessException e) {
+            throw unavailable(e);
+        }
+    }
+
+    public AccountSummary createAccount(String authorization, String name, String currency, BigDecimal startingBalance) {
+        try {
+            return rest.post().uri("/api/accounts")
+                    .header(HttpHeaders.AUTHORIZATION, authorization)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(Map.of("name", name, "currency", currency, "startingBalance", startingBalance))
+                    .retrieve()
+                    .body(AccountSummary.class);
+        } catch (RestClientResponseException e) {
+            throw map(e);
+        } catch (ResourceAccessException e) {
+            throw unavailable(e);
+        }
+    }
+
+    public Portfolio portfolio(String authorization, Long accountId) {
+        try {
+            return rest.get().uri("/api/accounts/{id}/portfolio", accountId)
+                    .header(HttpHeaders.AUTHORIZATION, authorization)
+                    .retrieve()
+                    .body(Portfolio.class);
         } catch (RestClientResponseException e) {
             throw map(e);
         } catch (ResourceAccessException e) {

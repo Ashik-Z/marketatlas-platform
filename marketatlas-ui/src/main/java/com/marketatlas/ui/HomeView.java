@@ -27,6 +27,7 @@ public class HomeView extends VerticalLayout {
                 new Paragraph("Market data, inflation-adjusted prices, paper trading and backtesting."),
                 new RouterLink("Browse markets", MarketView.class),
                 new RouterLink("Backtest lab", BacktestView.class),
+                new RouterLink("Accounts", AccountsView.class),
                 logout);
     }
 }
