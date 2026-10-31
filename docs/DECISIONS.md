@@ -59,6 +59,9 @@ A short record of what this project is, what it deliberately is not, and why.
 - **Separate app**: `marketatlas-ui/` (Vaadin 25, Spring Boot 4.1.1) only calls the public REST API, so the API stays stateless and unchanged, needs no CORS settings, and runs without the UI.
 - **Login**: the UI verifies credentials with an authenticated call (`GET /api/accounts`) and keeps only the Basic `Authorization` header in the server-side Vaadin session. The password is never stored in the browser or written to logs; errors are mapped to fixed, safe messages (the API's validation detail is shown for 400).
 - **Build**: dev mode uses the Vaadin dev server (default Maven profile); `-Pproduction` builds the optimized bundle without it, and the UI Docker image uses that.
+- **Charts**: the price and equity charts use Apache ECharts (Apache-2.0, bundled through npm). Vaadin Charts is a commercial component, so it is not used.
+- **Public vs login pages**: the asset list and real prices are public API reads and are called without credentials; backtests, accounts and orders send the stored header from the server-side session on each call.
+- **Orders from the UI**: every order attempt carries an `Idempotency-Key`. The UI keeps the same key only while the outcome is unknown (the API could not be reached), so a retry cannot fill twice; any definite answer, or a changed form, starts a new key. Rejected orders (409) show the API's own reason.
 - **Limits**: all traffic runs over plain HTTP (fine on localhost; real deployments need HTTPS in front of both apps). The API rate-limits sign-ups and failed logins per IP and every UI request arrives from the UI server's IP, so one user's failed attempts can lock out others; the UI shows the 429 and its Retry-After. Sessions live in memory and are lost when the UI restarts.
 
 ## Known limits and planned work
