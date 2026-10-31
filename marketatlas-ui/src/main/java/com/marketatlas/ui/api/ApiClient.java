@@ -152,6 +152,41 @@ public class ApiClient {
         }
     }
 
+    /** Places a market order. The same idempotency key makes a retry return the original trade. */
+    public TradeRecord placeOrder(String authorization, Long accountId, String idempotencyKey,
+                                  Long assetId, String side, BigDecimal quantity) {
+        try {
+            return rest.post().uri("/api/accounts/{id}/orders", accountId)
+                    .header(HttpHeaders.AUTHORIZATION, authorization)
+                    .header("Idempotency-Key", idempotencyKey)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(Map.of("assetId", assetId, "side", side, "quantity", quantity))
+                    .retrieve()
+                    .body(TradeRecord.class);
+        } catch (RestClientResponseException e) {
+            if (e.getStatusCode().value() == 409) {
+                throw new ApiException(ApiException.Kind.CONFLICT, detailOr(e, "The order was rejected."), null);
+            }
+            throw map(e);
+        } catch (ResourceAccessException e) {
+            throw unavailable(e);
+        }
+    }
+
+    public TradePage trades(String authorization, Long accountId, int page, int size) {
+        try {
+            return rest.get().uri(b -> b.path("/api/accounts/{id}/trades")
+                            .queryParam("page", page).queryParam("size", size).build(accountId))
+                    .header(HttpHeaders.AUTHORIZATION, authorization)
+                    .retrieve()
+                    .body(TradePage.class);
+        } catch (RestClientResponseException e) {
+            throw map(e);
+        } catch (ResourceAccessException e) {
+            throw unavailable(e);
+        }
+    }
+
     private static final org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger(ApiClient.class);
 
     private static ApiException unavailable(Exception e) {
