@@ -1,5 +1,6 @@
 package com.marketatlas.ui.api;
 
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ProblemDetail;
@@ -10,6 +11,7 @@ import org.springframework.web.client.RestClientResponseException;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
+import java.util.List;
 import java.util.Map;
 
 /** Thin client for the MarketAtlas REST API. Never logs or echoes credentials. */
@@ -48,6 +50,20 @@ public class ApiClient {
                     .header(HttpHeaders.AUTHORIZATION, basicHeader(username, password))
                     .retrieve()
                     .toBodilessEntity();
+        } catch (RestClientResponseException e) {
+            throw map(e);
+        } catch (ResourceAccessException e) {
+            throw unavailable(e);
+        }
+    }
+
+    /** Lists assets. The endpoint is public, so no credentials are sent. */
+    public List<AssetSummary> listAssets() {
+        try {
+            List<AssetSummary> assets = rest.get().uri("/api/assets")
+                    .retrieve()
+                    .body(new ParameterizedTypeReference<List<AssetSummary>>() { });
+            return assets == null ? List.of() : assets;
         } catch (RestClientResponseException e) {
             throw map(e);
         } catch (ResourceAccessException e) {
