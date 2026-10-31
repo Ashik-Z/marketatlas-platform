@@ -3,7 +3,7 @@ package com.marketatlas.ui.api;
 /** A failed call to the MarketAtlas API, already reduced to a safe, user-presentable kind. */
 public class ApiException extends RuntimeException {
 
-    public enum Kind { INVALID_INPUT, DUPLICATE_USER, INVALID_CREDENTIALS, RATE_LIMITED, UNAVAILABLE, NOT_FOUND }
+    public enum Kind { INVALID_INPUT, DUPLICATE_USER, INVALID_CREDENTIALS, RATE_LIMITED, UNAVAILABLE, NOT_FOUND, CONFLICT }
 
     private final Kind kind;
     private final Long retryAfterSeconds;
