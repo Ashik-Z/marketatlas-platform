@@ -92,6 +92,22 @@ public class ApiClient {
         }
     }
 
+    /** Runs a backtest. Needs login: the caller passes the stored Basic Authorization header. */
+    public BacktestResult backtest(Long assetId, String authorization, BacktestParams params) {
+        try {
+            return rest.post().uri("/api/assets/{id}/backtest", assetId)
+                    .header(HttpHeaders.AUTHORIZATION, authorization)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(params)
+                    .retrieve()
+                    .body(BacktestResult.class);
+        } catch (RestClientResponseException e) {
+            throw map(e);
+        } catch (ResourceAccessException e) {
+            throw unavailable(e);
+        }
+    }
+
     private static final org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger(ApiClient.class);
 
     private static ApiException unavailable(Exception e) {
