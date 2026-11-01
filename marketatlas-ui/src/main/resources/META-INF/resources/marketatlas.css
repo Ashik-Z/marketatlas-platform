@@ -1,25 +1,98 @@
-/* MarketAtlas tokens: dark only. Aura variables set the theme; --ma-* are read by the charts and P&L text. */
+/* MarketAtlas tokens: dark only. Aura variables set the theme; --ma-* are our own tokens (cards, text, charts). */
 :root:root {
   --aura-color-scheme: dark;
   --aura-background-color-light: #1a0f12;
   --aura-background-color-dark: #1a0f12;
-  --aura-surface-color-solid: #261519;
-  --aura-surface-opacity: 0.9;
-  --aura-accent-color-light: #cfa84f;
-  --aura-accent-color-dark: #cfa84f;
+  --aura-accent-color-light: #ebc79e;
+  --aura-accent-color-dark: #ebc79e;
   --aura-accent-contrast-color-light: #1a0f12;
   --aura-accent-contrast-color-dark: #1a0f12;
 
-  --vaadin-text-color: #cfa84f;
-  --vaadin-text-color-secondary: #9c8250;
-  --vaadin-border-color: rgba(207, 168, 79, 0.22);
+  --ma-card: #3b2a33;
+  --ma-line: #4f3e47;
+  --ma-burgundy: #742c42;
+  --ma-text: #e0c8b0;
+  --ma-text-muted: #a8917f;
+  --ma-nominal: #d98aa3;
+  --ma-real: #ebc79e;
+  --ma-gain: #7fd1a8;
+  --ma-loss: #ef8a93;
 
-  --ma-nominal: #a9a4b8;
-  --ma-real: #cfa84f;
-  --ma-gain: #5ec59a;
-  --ma-loss: #e8707a;
+  --vaadin-text-color: var(--ma-text);
+  --vaadin-text-color-secondary: var(--ma-text-muted);
+  --vaadin-border-color: var(--ma-line);
+}
+
+/* Aura recomputes surface colors on every component, so set them on the components themselves. */
+:root:root vaadin-grid,
+:root:root vaadin-card,
+:root:root vaadin-dashboard-widget,
+:root:root vaadin-tabs {
+  --aura-surface-color-solid: var(--ma-card);
+  --aura-surface-opacity: 1;
+  --vaadin-background-color: var(--ma-card);
+  --vaadin-grid-background: var(--ma-card);
+}
+
+:root:root vaadin-app-layout::part(drawer),
+:root:root vaadin-app-layout::part(navbar) {
+  --aura-surface-color-solid: var(--ma-card);
+  --aura-surface-opacity: 1;
+  --vaadin-background-color: var(--ma-card);
 }
 
 html, body {
-  color: #cfa84f;
+  color: var(--ma-text);
+}
+
+/* Dashboard cards */
+.ma-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1rem;
+  width: 100%;
+}
+
+.ma-card {
+  background: var(--ma-card);
+  border-radius: 16px;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.ma-card-title {
+  font-weight: 600;
+}
+
+.ma-card-value {
+  font-size: 1.75rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.ma-card-pnl {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.ma-muted {
+  color: var(--ma-text-muted);
+}
+
+.ma-gain {
+  color: var(--ma-gain);
+}
+
+.ma-loss {
+  color: var(--ma-loss);
+}
+/* Contrast fix: links and secondary buttons on the dark theme */
+:root:root a[router-link] { color: #ebc79e; text-decoration-color: #742c42; }
+:root:root a[router-link]:hover { color: #f5dcbd; }
+:root:root vaadin-button:not([theme~="primary"]) {
+  color: #ebc79e;
+  background: transparent;
+  border: 1px solid #742c42;
 }
