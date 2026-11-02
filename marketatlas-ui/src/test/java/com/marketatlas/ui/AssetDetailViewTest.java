@@ -158,4 +158,28 @@ class AssetDetailViewTest {
 
         org.junit.jupiter.api.Assertions.assertFalse(view.watchVisible());
     }
+
+    @org.junit.jupiter.api.Test
+    void theTitleShowsTheAssetNameEvenWhenRealPricesFail() {
+        ApiClient api = apiWithFailingPrices();
+        org.mockito.Mockito.when(api.listAssets()).thenReturn(java.util.List.of(
+                new com.marketatlas.ui.api.AssetSummary(1L, "Apple Inc.", "EQUITY", "AAPL", null, null)));
+        AssetDetailView view = new AssetDetailView(api, org.mockito.Mockito.mock(UserSession.class));
+
+        view.open(1L);
+
+        org.junit.jupiter.api.Assertions.assertEquals("Apple Inc.", view.titleText());
+    }
+
+    @org.junit.jupiter.api.Test
+    void theTitleFallsBackToTheIdWhenTheAssetListIsUnavailable() {
+        ApiClient api = apiWithFailingPrices();
+        org.mockito.Mockito.when(api.listAssets()).thenThrow(
+                new ApiException(ApiException.Kind.UNAVAILABLE, "down", null));
+        AssetDetailView view = new AssetDetailView(api, org.mockito.Mockito.mock(UserSession.class));
+
+        view.open(1L);
+
+        org.junit.jupiter.api.Assertions.assertEquals("Asset #1", view.titleText());
+    }
 }
