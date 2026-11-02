@@ -34,6 +34,8 @@ public class HomeView extends VerticalLayout {
     private final Paragraph accountsNote = new Paragraph();
     private final Paragraph tradesNote = new Paragraph();
     private final Div cards = new Div();
+    private final Paragraph watchNote = new Paragraph();
+    private final Div watchTiles = new Div();
     private final Grid<DashboardModel.RecentTrade> trades = new Grid<>(DashboardModel.RecentTrade.class, false);
     private final VerticalLayout content = new VerticalLayout();
 
@@ -46,6 +48,7 @@ public class HomeView extends VerticalLayout {
         });
 
         cards.addClassName("ma-card-grid");
+        watchTiles.addClassName("ma-card-grid");
         trades.addColumn(t -> t.executedAt() == null ? "" : TIME.format(t.executedAt())).setHeader("Time").setAutoWidth(true);
         trades.addColumn(DashboardModel.RecentTrade::accountName).setHeader("Account");
         trades.addColumn(DashboardModel.RecentTrade::side).setHeader("Side");
@@ -55,7 +58,8 @@ public class HomeView extends VerticalLayout {
         trades.setAllRowsVisible(true);
 
         content.setPadding(false);
-        content.add(new H2("Your accounts"), accountsNote, cards, new H2("Latest trades"), tradesNote, trades);
+        content.add(new H2("Your accounts"), accountsNote, cards, new H2("Watchlist"), watchNote, watchTiles,
+                new H2("Latest trades"), tradesNote, trades);
         status.setVisible(false);
 
         HorizontalLayout links = new HorizontalLayout(
@@ -88,6 +92,11 @@ public class HomeView extends VerticalLayout {
             accountsNote.setText("");
         }
         accountsNote.setVisible(!accountsNote.getText().isEmpty());
+        watchTiles.removeAll();
+        m.watch().forEach(w -> watchTiles.add(watchTile(w)));
+        watchNote.setText(!m.watchAvailable() ? "Your watchlist is unavailable right now."
+                : m.watch().isEmpty() ? "Nothing here yet. Star assets on the Markets page to see them here." : "");
+        watchNote.setVisible(!watchNote.getText().isEmpty());
         trades.setItems(m.trades());
         trades.setVisible(!m.trades().isEmpty());
         tradesNote.setText(m.trades().isEmpty() && !m.cards().isEmpty()
@@ -124,6 +133,38 @@ public class HomeView extends VerticalLayout {
         }
         card.add(link("Open account", "account/" + c.accountId()));
         return card;
+    }
+
+    private static Div watchTile(DashboardModel.WatchTile w) {
+        Div tile = new Div();
+        tile.addClassName("ma-card");
+        Span name = new Span(w.name());
+        name.addClassName("ma-card-title");
+        Span currency = new Span(w.currency() == null ? "" : w.currency());
+        currency.addClassName("ma-muted");
+        tile.add(new HorizontalLayout(name, currency));
+        if (w.latestClose() == null) {
+            Div none = new Div("No price data yet.");
+            none.addClassName("ma-muted");
+            tile.add(none);
+        } else {
+            Div value = new Div(money(w.latestClose()));
+            value.addClassName("ma-card-value");
+            Div change = new Div(arrow(w.change()) + signed(w.change())
+                    + (w.changePercent() == null ? "" : " (" + signed(w.changePercent()) + "%)"));
+            change.addClassNames("ma-card-pnl", pnlClass(w.change()));
+            tile.add(value, change);
+        }
+        tile.add(link("View chart", "market/asset/" + w.assetId()));
+        return tile;
+    }
+
+    long watchTileCount() {
+        return watchTiles.getChildren().count();
+    }
+
+    String watchNoteText() {
+        return watchNote.getText();
     }
 
     private static Anchor link(String text, String href) {

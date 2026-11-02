@@ -4,9 +4,12 @@ import com.marketatlas.ui.api.ApiClient;
 import com.marketatlas.ui.api.ApiException;
 import com.marketatlas.ui.api.RealPrices;
 import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.button.ButtonVariant;
+import com.marketatlas.ui.auth.UserSession;
 import com.vaadin.flow.component.datepicker.DatePicker;
 import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.Paragraph;
+import com.vaadin.flow.component.orderedlayout.FlexComponent.Alignment;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.BeforeEvent;
@@ -31,15 +34,24 @@ public class AssetDetailView extends VerticalLayout implements HasUrlParameter<L
     private final Paragraph note = new Paragraph();
     private final PriceChart chart = new PriceChart();
     private Long assetId;
+    private final String authorization;
+    private final Button watchButton = new Button();
+    private boolean watching;
 
-    public AssetDetailView(ApiClient api) {
+    public AssetDetailView(ApiClient api, UserSession session) {
         this.api = api;
+        this.authorization = session.isLoggedIn() ? session.authHeader() : null;
         end.setValue(LocalDate.now());
         start.setValue(end.getValue().minusYears(2));
         Button show = new Button("Show", e -> load());
         chart.setVisible(false);
         status.setVisible(false);
-        add(title, new HorizontalLayout(start, end, show), status, summary, note, chart);
+        watchButton.addThemeVariants(ButtonVariant.AURA_TERTIARY);
+        watchButton.addClickListener(e -> toggleWatch());
+        watchButton.setVisible(false);
+        HorizontalLayout heading = new HorizontalLayout(title, watchButton);
+        heading.setAlignItems(Alignment.CENTER);
+        add(heading, new HorizontalLayout(start, end, show), status, summary, note, chart);
     }
 
     @Override
@@ -50,6 +62,7 @@ public class AssetDetailView extends VerticalLayout implements HasUrlParameter<L
     void open(Long id) {
         this.assetId = id;
         title.setText("Asset #" + id);
+        refreshWatchState();
         load();
     }
 
@@ -77,6 +90,47 @@ public class AssetDetailView extends VerticalLayout implements HasUrlParameter<L
         } catch (ApiException e) {
             fail(e.getMessage());
         }
+    }
+
+    private void refreshWatchState() {
+        watchButton.setVisible(authorization != null);
+        if (authorization == null) {
+            return;
+        }
+        try {
+            watching = api.watchlist(authorization).stream().anyMatch(e -> e.assetId().equals(assetId));
+            showWatchLabel();
+        } catch (ApiException e) {
+            watchButton.setVisible(false);
+        }
+    }
+
+    void toggleWatch() {
+        try {
+            if (watching) {
+                api.unwatch(authorization, assetId);
+                watching = false;
+            } else {
+                api.watch(authorization, assetId);
+                watching = true;
+            }
+            showWatchLabel();
+        } catch (ApiException e) {
+            status.setText(e.getMessage());
+            status.setVisible(true);
+        }
+    }
+
+    private void showWatchLabel() {
+        watchButton.setText(watching ? "\u2605 Watching" : "\u2606 Watch");
+    }
+
+    String watchLabel() {
+        return watchButton.getText();
+    }
+
+    boolean watchVisible() {
+        return watchButton.isVisible();
     }
 
     private void fail(String message) {
