@@ -96,3 +96,70 @@ html, body {
   background: transparent;
   border: 1px solid #742c42;
 }
+
+/* Public log-in and sign-up pages */
+.ma-auth {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  min-height: 100vh;
+  width: 100%;
+}
+.ma-auth-brand {
+  background: linear-gradient(160deg, var(--ma-burgundy) 0%, var(--ma-card) 55%, #1a0f12 100%);
+  padding: 4rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 1.5rem;
+}
+.ma-auth-name { font-size: 2rem; font-weight: 700; color: var(--ma-real); }
+.ma-auth-tagline { font-size: 1.25rem; max-width: 22em; margin: 0; }
+.ma-mark {
+  width: 100%;
+  max-width: 360px;
+  fill: none;
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.ma-mark-nominal { stroke: var(--ma-nominal); }
+.ma-mark-real { stroke: var(--ma-real); }
+.ma-legend { display: flex; gap: 1.25rem; font-size: 0.9rem; }
+.ma-legend-nominal { color: var(--ma-nominal); }
+.ma-legend-real { color: var(--ma-real); }
+.ma-auth-form { display: flex; align-items: center; justify-content: center; padding: 2rem; }
+.ma-auth-box { width: 100%; max-width: 24rem; display: flex; flex-direction: column; gap: 1rem; }
+.ma-auth-box h1 { margin: 0; font-size: 1.75rem; }
+.ma-auth-box p { margin: 0; }
+.ma-auth-alt { text-align: center; color: var(--ma-text-muted); }
+.ma-error { color: var(--ma-loss); }
+@media (max-width: 800px) {
+  .ma-auth { grid-template-columns: 1fr; }
+  .ma-auth-brand { display: none; }
+}
+
+/* Form fields on the dark theme: card-coloured instead of Aura's light grey */
+:root:root vaadin-text-field,
+:root:root vaadin-password-field,
+:root:root vaadin-number-field,
+:root:root vaadin-big-decimal-field,
+:root:root vaadin-integer-field,
+:root:root vaadin-date-picker,
+:root:root vaadin-select,
+:root:root vaadin-combo-box {
+  --vaadin-input-field-background: var(--ma-card);
+  --vaadin-input-field-value-color: var(--ma-text);
+  --vaadin-input-field-border-color: var(--ma-line);
+}
+:root:root vaadin-text-field::part(input-field),
+:root:root vaadin-password-field::part(input-field),
+:root:root vaadin-number-field::part(input-field),
+:root:root vaadin-big-decimal-field::part(input-field),
+:root:root vaadin-integer-field::part(input-field),
+:root:root vaadin-date-picker::part(input-field),
+:root:root vaadin-select::part(input-field),
+:root:root vaadin-combo-box::part(input-field) {
+  background: var(--ma-card);
+  color: var(--ma-text);
+}
+.ma-auth-alt a { color: var(--ma-real); text-decoration-color: var(--ma-burgundy); }

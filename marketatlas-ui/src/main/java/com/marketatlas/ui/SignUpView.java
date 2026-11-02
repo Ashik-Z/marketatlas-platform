@@ -29,19 +29,20 @@ public class SignUpView extends VerticalLayout implements PublicView {
     public SignUpView(ApiClient api, UserSession session) {
         TextField username = new TextField("Username");
         username.setAutofocus(true);
-        username.setWidth("20em");
+        username.setWidthFull();
         PasswordField password = new PasswordField("Password (12 to 72 characters)");
-        password.setWidth("20em");
+        password.setWidthFull();
         PasswordField confirm = new PasswordField("Confirm password");
-        confirm.setWidth("20em");
+        confirm.setWidthFull();
 
         Span error = new Span();
         error.getElement().setAttribute("role", "alert");
-        error.getStyle().set("color", "var(--lumo-error-text-color)");
+        error.addClassName("ma-error");
         error.setVisible(false);
 
         Button signUp = new Button("Create account");
-        signUp.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        signUp.addThemeVariants(ButtonVariant.AURA_PRIMARY);
+        signUp.setWidthFull();
         signUp.addClickShortcut(Key.ENTER);
         signUp.addClickListener(e -> {
             error.setVisible(false);
@@ -64,9 +65,9 @@ public class SignUpView extends VerticalLayout implements PublicView {
             }
         });
 
-        setAlignItems(Alignment.CENTER);
-        add(new H1("Create your account"), username, password, confirm, error, signUp,
-                new Anchor("login", "Back to log in"));
+        setPadding(false);
+        add(AuthPage.wrap("Create your account", "Open a paper-trading account in seconds.", username, password, confirm, error, signUp,
+                AuthPage.alt("Already registered?", new Anchor("login", "Log in"))));
     }
 
     static String validate(String username, String password, String confirmation) {

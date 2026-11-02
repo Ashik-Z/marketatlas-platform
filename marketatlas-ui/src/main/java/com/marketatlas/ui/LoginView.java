@@ -24,17 +24,18 @@ public class LoginView extends VerticalLayout implements PublicView {
     public LoginView(ApiClient api, UserSession session) {
         TextField username = new TextField("Username");
         username.setAutofocus(true);
-        username.setWidth("20em");
+        username.setWidthFull();
         PasswordField password = new PasswordField("Password");
-        password.setWidth("20em");
+        password.setWidthFull();
 
         Span error = new Span();
         error.getElement().setAttribute("role", "alert");
-        error.getStyle().set("color", "var(--lumo-error-text-color)");
+        error.addClassName("ma-error");
         error.setVisible(false);
 
         Button login = new Button("Log in");
-        login.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        login.addThemeVariants(ButtonVariant.AURA_PRIMARY);
+        login.setWidthFull();
         login.addClickShortcut(Key.ENTER);
         login.addClickListener(e -> {
             error.setVisible(false);
@@ -55,9 +56,9 @@ public class LoginView extends VerticalLayout implements PublicView {
             }
         });
 
-        setAlignItems(Alignment.CENTER);
-        add(new H1("MarketAtlas"), username, password, error, login,
-                new Span("No account yet?"), new Anchor("signup", "Create an account"));
+        setPadding(false);
+        add(AuthPage.wrap("Log in", "Welcome back.", username, password, error, login,
+                AuthPage.alt("No account yet?", new Anchor("signup", "Create an account"))));
     }
 
     static String messageFor(ApiException ex) {
