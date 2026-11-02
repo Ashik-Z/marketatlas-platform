@@ -66,6 +66,15 @@ public class GlobalExceptionHandler {
         return problemDetail;
     }
 
+    @ExceptionHandler(WatchlistLimitException.class)
+    @ResponseStatus(HttpStatus.CONFLICT)
+    public ProblemDetail handleWatchlistLimit(WatchlistLimitException exception) {
+        ProblemDetail problemDetail = ProblemDetail.forStatus(HttpStatus.CONFLICT);
+        problemDetail.setTitle("Watchlist Full");
+        problemDetail.setDetail(exception.getMessage());
+        return problemDetail;
+    }
+
     @ExceptionHandler(ProviderRateLimitException.class)
     public ResponseEntity<ProblemDetail> handleProviderRateLimit(ProviderRateLimitException exception) {
 
