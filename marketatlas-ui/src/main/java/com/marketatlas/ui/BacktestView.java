@@ -70,6 +70,7 @@ public class BacktestView extends VerticalLayout {
         cash.setValue(new BigDecimal("10000"));
         slippage.setValue(5);
         asset.setItemLabelGenerator(a -> a.name() + " (" + a.symbol() + ")");
+        asset.setMinWidth("16em");
         HorizontalLayout windows = new HorizontalLayout(shortWindow, longWindow);
         strategy.addValueChangeListener(e -> windows.setVisible(SMA.equals(e.getValue())));
 

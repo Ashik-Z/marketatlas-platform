@@ -43,7 +43,15 @@ public class AssetDetailView extends VerticalLayout implements HasUrlParameter<L
         this.authorization = session.isLoggedIn() ? session.authHeader() : null;
         end.setValue(LocalDate.now());
         start.setValue(end.getValue().minusYears(2));
-        Button show = new Button("Show", e -> load());
+        Button show = new Button("Show");
+        show.setDisableOnClick(true);
+        show.addClickListener(e -> {
+            try {
+                load();
+            } finally {
+                show.setEnabled(true);
+            }
+        });
         chart.setVisible(false);
         status.setVisible(false);
         watchButton.addThemeVariants(ButtonVariant.AURA_TERTIARY);
@@ -89,7 +97,7 @@ public class AssetDetailView extends VerticalLayout implements HasUrlParameter<L
             chart.setVisible(true);
             chart.show(data);
         } catch (ApiException e) {
-            fail(e.getMessage());
+            fail(friendly(e.getMessage()));
         }
     }
 
@@ -141,6 +149,14 @@ public class AssetDetailView extends VerticalLayout implements HasUrlParameter<L
 
     boolean watchVisible() {
         return watchButton.isVisible();
+    }
+
+    static String friendly(String message) {
+        if (message != null && message.contains("CPIAUCNS")) {
+            return "Inflation data (CPI) has not been loaded yet, so real prices are unavailable. "
+                    + "An administrator needs to refresh the CPI series.";
+        }
+        return message;
     }
 
     private void fail(String message) {

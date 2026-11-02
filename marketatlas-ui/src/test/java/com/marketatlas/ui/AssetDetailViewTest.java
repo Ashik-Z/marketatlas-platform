@@ -182,4 +182,17 @@ class AssetDetailViewTest {
 
         org.junit.jupiter.api.Assertions.assertEquals("Asset #1", view.titleText());
     }
+
+    @org.junit.jupiter.api.Test
+    void aMissingCpiMessageIsRewrittenForUsers() {
+        String text = AssetDetailView.friendly("No CPIAUCNS observations are loaded yet");
+
+        org.junit.jupiter.api.Assertions.assertTrue(text.contains("administrator"));
+        org.junit.jupiter.api.Assertions.assertFalse(text.contains("CPIAUCNS"));
+    }
+
+    @org.junit.jupiter.api.Test
+    void otherMessagesPassThroughUnchanged() {
+        org.junit.jupiter.api.Assertions.assertEquals("Not found.", AssetDetailView.friendly("Not found."));
+    }
 }
