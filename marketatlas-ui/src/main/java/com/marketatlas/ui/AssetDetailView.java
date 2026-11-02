@@ -62,6 +62,7 @@ public class AssetDetailView extends VerticalLayout implements HasUrlParameter<L
     void open(Long id) {
         this.assetId = id;
         title.setText("Asset #" + id);
+        lookUpName(id);
         refreshWatchState();
         load();
     }
@@ -89,6 +90,15 @@ public class AssetDetailView extends VerticalLayout implements HasUrlParameter<L
             chart.show(data);
         } catch (ApiException e) {
             fail(e.getMessage());
+        }
+    }
+
+    private void lookUpName(Long id) {
+        try {
+            api.listAssets().stream().filter(a -> id.equals(a.id())).findFirst()
+                    .ifPresent(a -> title.setText(a.name()));
+        } catch (ApiException e) {
+            // keep the generic "Asset #id" title
         }
     }
 
