@@ -64,6 +64,15 @@ A short record of what this project is, what it deliberately is not, and why.
 - **Orders from the UI**: every order attempt carries an `Idempotency-Key`. The UI keeps the same key only while the outcome is unknown (the API could not be reached), so a retry cannot fill twice; any definite answer, or a changed form, starts a new key. Rejected orders (409) show the API's own reason.
 - **Limits**: all traffic runs over plain HTTP (fine on localhost; real deployments need HTTPS in front of both apps). The API rate-limits sign-ups and failed logins per IP and every UI request arrives from the UI server's IP, so one user's failed attempts can lock out others; the UI shows the 429 and its Retry-After. Sessions live in memory and are lost when the UI restarts.
 
+## Watchlist
+
+- **Personal and owner-only**: `/api/watchlist` works only on the caller's own list (USER or ADMIN); the admin has no override, because a watchlist is a personal view and not account data. Items are keyed by username, like accounts, because the bootstrap admin has no `app_user` row.
+- **Catalogue, not free text**: users watch assets that are already registered; there is no add-by-ticker, so an unknown symbol can never be saved and the Markets page is the one place to browse what exists.
+- **Idempotent**: adding is `INSERT ... ON CONFLICT DO NOTHING` and removing deletes zero or one rows, so repeating either is harmless and two concurrent adds cannot collide. A user can watch at most 50 assets (the 51st gets 409 `Watchlist Full`; re-adding a watched asset is still allowed). The limit is checked before the insert, so simultaneous adds at 49 items can briefly reach 51; it bounds the list size and is not a financial invariant.
+- **Nominal day change only**: each entry shows the latest stored close and its change against the previous stored bar. A daily inflation-adjusted change is not shown, because CPI is monthly and the real series would equal the nominal one within a month; real figures stay on the asset page.
+- **Cost**: listing reads the last two bars per watched asset, at most about 100 small indexed queries for a full list; the 50-item cap bounds it.
+- **UI**: Markets and the asset page have star toggles and the Overview shows up to six tiles. If the watchlist cannot be loaded, the rest of each page still works.
+
 ## Known limits and planned work
 
 - Rate-limit state is per instance and resets on restart; running several instances would need a shared store. Users behind one shared IP share the sign-up and failed-login budgets. Behind a trusted proxy, the client-IP source must be configured first.
@@ -74,3 +83,5 @@ A short record of what this project is, what it deliberately is not, and why.
 - Weekend bars already stored before this rule (from earlier fetches) are not removed; they are partial sessions and can be the latest close used for a fill or valuation.
 - Real prices cover USD assets only (US CPI); other currencies would need their own inflation series.
 - **Silver is not tracked.** Twelve Data serves `XAG/USD` only on its Grow and Venture plans; on the free plan it answers 404, which the API reports as 502. Silver was removed from the local database. Registering it again needs a paid plan or another provider; gold works on the free plan.
+- Assets registered before the currency field existed keep a blank currency until it is set. There is no edit endpoint, so update `asset.currency` in the database directly; until then real prices and orders refuse the asset.
+- The watchlist day change compares the last two stored bars, so it can span a weekend or a gap in the stored data.

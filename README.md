@@ -58,6 +58,7 @@ Docker must be running (tests use Testcontainers with PostgreSQL).
 | `POST /api/accounts/{id}/orders` | logged-in user | Place a market order (`Idempotency-Key` header required) |
 | `GET /api/accounts/{id}/portfolio`, `/trades` | logged-in user | Valuation with P&L; paginated trade history |
 | `POST /api/assets/{id}/backtest` | logged-in user | Backtest a strategy against buy-and-hold, in nominal and real terms |
+| `GET /api/watchlist`, `PUT/DELETE /api/watchlist/{assetId}` | logged-in user | Personal watchlist with the latest close and nominal day change (50 assets maximum) |
 
 Public reads come from the database only. Another user's account answers 404, the same as a missing one.
 
@@ -108,7 +109,8 @@ US CPI rose 9.25% over the period, so both beat inflation; the trend rule gave u
 
 The UI pages:
 
-- **Markets** (`/market`) lists the assets; a row opens the asset page with the nominal vs inflation-adjusted price chart (USD assets only).
+- **Overview** (`/`) is the landing page: one P&L card per account, your watchlist and the latest trades across accounts. A sidebar links the main pages.
+- **Markets** (`/market`) lists the assets; a row opens the asset page with the nominal vs inflation-adjusted price chart (USD assets only). The star column adds or removes an asset from your watchlist, and the asset page has the same Watch button.
 - **Backtest lab** (`/backtest`) runs the backtester and shows strategy vs buy-and-hold metrics (nominal and real), the equity curves and the trades.
 - **Accounts** (`/accounts`, `/account/{id}`) create paper-trading accounts, show the portfolio with realized and unrealized P&L, place market orders and list the trade history.
 
