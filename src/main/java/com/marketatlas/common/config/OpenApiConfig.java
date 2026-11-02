@@ -46,7 +46,10 @@ public class OpenApiConfig {
             Map.entry("POST /api/accounts/{accountId}/orders",
                     "Place a market order (Idempotency-Key required; 201 new, 200 replay of the same key)"),
             Map.entry("GET /api/accounts/{accountId}/portfolio", "Portfolio valuation with realized and unrealized P&L"),
-            Map.entry("GET /api/accounts/{accountId}/trades", "Trade history, newest first, paginated"));
+            Map.entry("GET /api/accounts/{accountId}/trades", "Trade history, newest first, paginated"),
+            Map.entry("GET /api/watchlist", "List your watched assets with latest close and nominal day change"),
+            Map.entry("PUT /api/watchlist/{assetId}", "Add an asset to your watchlist (idempotent; 50 assets maximum)"),
+            Map.entry("DELETE /api/watchlist/{assetId}", "Remove an asset from your watchlist (idempotent)"));
 
     @Bean
     OpenAPI marketAtlasOpenApi() {
@@ -79,6 +82,10 @@ public class OpenApiConfig {
                                     new ApiResponse().description("Missing or wrong credentials"));
                         }
                     }
+                    if (key.equals("PUT /api/watchlist/{assetId}") && operation.getResponses() != null) {
+                        operation.getResponses().addApiResponse("404", new ApiResponse().description("Asset not found"));
+                        operation.getResponses().addApiResponse("409", new ApiResponse().description("Watchlist is full (50 assets)"));
+                    }
                     if (key.equals("POST /api/assets/{assetId}/backtest") && operation.getResponses() != null) {
                         operation.getResponses().addApiResponse("404", new ApiResponse().description("Asset not found"));
                         operation.getResponses().addApiResponse("429", new ApiResponse().description("Backtest rate limit exceeded; see Retry-After"));
@@ -97,6 +104,7 @@ public class OpenApiConfig {
 
     private static String tagFor(String path) {
         if (path.startsWith("/api/accounts")) return "Paper trading";
+        if (path.startsWith("/api/watchlist")) return "Watchlist";
         if (path.startsWith("/api/market-data")) return "Market data";
         if (path.endsWith("/real-prices")) return "Inflation";
         if (path.endsWith("/backtest")) return "Backtesting";
