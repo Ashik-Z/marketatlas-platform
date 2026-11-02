@@ -91,4 +91,51 @@ class HomeViewTest {
         assertEquals("\u25BC ", HomeView.arrow(new BigDecimal("-1")));
         assertEquals("", HomeView.arrow(BigDecimal.ZERO));
     }
+
+    private static com.marketatlas.ui.auth.UserSession alice() {
+        com.marketatlas.ui.auth.UserSession session = org.mockito.Mockito.mock(com.marketatlas.ui.auth.UserSession.class);
+        org.mockito.Mockito.when(session.username()).thenReturn("alice");
+        org.mockito.Mockito.when(session.authHeader()).thenReturn("Basic abc");
+        return session;
+    }
+
+    @org.junit.jupiter.api.Test
+    void watchedAssetsShowAsTilesOnTheDashboard() {
+        com.marketatlas.ui.api.ApiClient api = org.mockito.Mockito.mock(com.marketatlas.ui.api.ApiClient.class);
+        org.mockito.Mockito.when(api.listAccounts("Basic abc")).thenReturn(java.util.List.of());
+        org.mockito.Mockito.when(api.watchlist("Basic abc")).thenReturn(java.util.List.of(
+                new com.marketatlas.ui.api.WatchlistEntry(7L, "Gold Spot", "COMMODITY", "USD", null,
+                        new java.math.BigDecimal("4033.76"), null, null, new java.math.BigDecimal("33.76"),
+                        new java.math.BigDecimal("0.844"), null)));
+
+        HomeView view = new HomeView(api, alice());
+
+        org.junit.jupiter.api.Assertions.assertEquals(1, view.watchTileCount());
+        org.junit.jupiter.api.Assertions.assertEquals("", view.watchNoteText());
+    }
+
+    @org.junit.jupiter.api.Test
+    void anEmptyWatchlistPointsTheUserToTheMarketsPage() {
+        com.marketatlas.ui.api.ApiClient api = org.mockito.Mockito.mock(com.marketatlas.ui.api.ApiClient.class);
+        org.mockito.Mockito.when(api.listAccounts("Basic abc")).thenReturn(java.util.List.of());
+        org.mockito.Mockito.when(api.watchlist("Basic abc")).thenReturn(java.util.List.of());
+
+        HomeView view = new HomeView(api, alice());
+
+        org.junit.jupiter.api.Assertions.assertEquals(0, view.watchTileCount());
+        org.junit.jupiter.api.Assertions.assertTrue(view.watchNoteText().contains("Markets"));
+    }
+
+    @org.junit.jupiter.api.Test
+    void anUnavailableWatchlistShowsANoteButKeepsTheDashboard() {
+        com.marketatlas.ui.api.ApiClient api = org.mockito.Mockito.mock(com.marketatlas.ui.api.ApiClient.class);
+        org.mockito.Mockito.when(api.listAccounts("Basic abc")).thenReturn(java.util.List.of());
+        org.mockito.Mockito.when(api.watchlist("Basic abc")).thenThrow(new com.marketatlas.ui.api.ApiException(
+                com.marketatlas.ui.api.ApiException.Kind.UNAVAILABLE, "down", null));
+
+        HomeView view = new HomeView(api, alice());
+
+        org.junit.jupiter.api.Assertions.assertTrue(view.contentVisible());
+        org.junit.jupiter.api.Assertions.assertTrue(view.watchNoteText().contains("unavailable"));
+    }
 }

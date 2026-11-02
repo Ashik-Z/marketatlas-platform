@@ -2,6 +2,9 @@ package com.marketatlas.ui;
 
 import com.marketatlas.ui.api.ApiClient;
 import com.marketatlas.ui.api.ApiException;
+import com.marketatlas.ui.api.WatchlistEntry;
+import com.marketatlas.ui.auth.UserSession;
+import com.marketatlas.ui.api.ApiException;
 import com.marketatlas.ui.api.RealPrices;
 import org.junit.jupiter.api.Test;
 
@@ -35,7 +38,7 @@ class AssetDetailViewTest {
         ApiClient api = mock(ApiClient.class);
         when(api.realPrices(eq(7L), any(LocalDate.class), any(LocalDate.class), isNull())).thenReturn(sample());
 
-        AssetDetailView view = new AssetDetailView(api);
+        AssetDetailView view = new AssetDetailView(api, org.mockito.Mockito.mock(UserSession.class));
         view.open(7L);
 
         assertEquals("Gold Spot (USD)", view.titleText());
@@ -50,7 +53,7 @@ class AssetDetailViewTest {
         when(api.realPrices(eq(9L), any(LocalDate.class), any(LocalDate.class), isNull())).thenThrow(
                 new ApiException(ApiException.Kind.NOT_FOUND, "Asset not found: 9", null));
 
-        AssetDetailView view = new AssetDetailView(api);
+        AssetDetailView view = new AssetDetailView(api, org.mockito.Mockito.mock(UserSession.class));
         view.open(9L);
 
         assertEquals("Asset not found: 9", view.statusText());
@@ -61,7 +64,7 @@ class AssetDetailViewTest {
     @Test
     void startAfterEndIsRejectedWithoutCallingTheApi() {
         ApiClient api = mock(ApiClient.class);
-        AssetDetailView view = new AssetDetailView(api);
+        AssetDetailView view = new AssetDetailView(api, org.mockito.Mockito.mock(UserSession.class));
         view.startPicker().setValue(LocalDate.of(2025, 1, 2));
         view.endPicker().setValue(LocalDate.of(2025, 1, 1));
 
@@ -71,5 +74,88 @@ class AssetDetailViewTest {
         assertFalse(view.chartVisible());
         verify(api, never()).realPrices(any(), any(), any(), any(YearMonth.class));
         verify(api, never()).realPrices(any(), any(), any(), isNull());
+    }
+
+    private static UserSession loggedIn() {
+        UserSession session = org.mockito.Mockito.mock(UserSession.class);
+        org.mockito.Mockito.when(session.isLoggedIn()).thenReturn(true);
+        org.mockito.Mockito.when(session.authHeader()).thenReturn("Basic abc");
+        return session;
+    }
+
+    private static ApiClient apiWithFailingPrices() {
+        ApiClient api = org.mockito.Mockito.mock(ApiClient.class);
+        org.mockito.Mockito.when(api.realPrices(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(),
+                        org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any()))
+                .thenThrow(new ApiException(ApiException.Kind.NOT_FOUND, "Not found.", null));
+        return api;
+    }
+
+    private static WatchlistEntry entry(long assetId) {
+        return new WatchlistEntry(assetId, "x", "COMMODITY", "USD", null, null, null, null, null, null, null);
+    }
+
+    @org.junit.jupiter.api.Test
+    void loggedOutVisitorsDoNotSeeTheWatchButton() {
+        AssetDetailView view = new AssetDetailView(apiWithFailingPrices(), org.mockito.Mockito.mock(UserSession.class));
+
+        view.open(5L);
+
+        org.junit.jupiter.api.Assertions.assertFalse(view.watchVisible());
+    }
+
+    @org.junit.jupiter.api.Test
+    void watchButtonShowsWatchingWhenTheAssetIsAlreadyWatched() {
+        ApiClient api = apiWithFailingPrices();
+        org.mockito.Mockito.when(api.watchlist("Basic abc")).thenReturn(java.util.List.of(entry(5L)));
+        AssetDetailView view = new AssetDetailView(api, loggedIn());
+
+        view.open(5L);
+
+        org.junit.jupiter.api.Assertions.assertTrue(view.watchVisible());
+        org.junit.jupiter.api.Assertions.assertEquals("\u2605 Watching", view.watchLabel());
+    }
+
+    @org.junit.jupiter.api.Test
+    void togglingWatchesThenUnwatches() {
+        ApiClient api = apiWithFailingPrices();
+        org.mockito.Mockito.when(api.watchlist("Basic abc")).thenReturn(java.util.List.of());
+        AssetDetailView view = new AssetDetailView(api, loggedIn());
+        view.open(5L);
+        org.junit.jupiter.api.Assertions.assertEquals("\u2606 Watch", view.watchLabel());
+
+        view.toggleWatch();
+        org.junit.jupiter.api.Assertions.assertEquals("\u2605 Watching", view.watchLabel());
+        org.mockito.Mockito.verify(api).watch("Basic abc", 5L);
+
+        view.toggleWatch();
+        org.junit.jupiter.api.Assertions.assertEquals("\u2606 Watch", view.watchLabel());
+        org.mockito.Mockito.verify(api).unwatch("Basic abc", 5L);
+    }
+
+    @org.junit.jupiter.api.Test
+    void aFullWatchlistLeavesTheButtonUnwatched() {
+        ApiClient api = apiWithFailingPrices();
+        org.mockito.Mockito.when(api.watchlist("Basic abc")).thenReturn(java.util.List.of());
+        org.mockito.Mockito.doThrow(new ApiException(ApiException.Kind.CONFLICT, "Watchlist is full (50 assets maximum).", null))
+                .when(api).watch("Basic abc", 5L);
+        AssetDetailView view = new AssetDetailView(api, loggedIn());
+        view.open(5L);
+
+        view.toggleWatch();
+
+        org.junit.jupiter.api.Assertions.assertEquals("\u2606 Watch", view.watchLabel());
+    }
+
+    @org.junit.jupiter.api.Test
+    void ifTheWatchlistCannotBeLoadedTheButtonHides() {
+        ApiClient api = apiWithFailingPrices();
+        org.mockito.Mockito.when(api.watchlist("Basic abc")).thenThrow(
+                new ApiException(ApiException.Kind.UNAVAILABLE, "down", null));
+        AssetDetailView view = new AssetDetailView(api, loggedIn());
+
+        view.open(5L);
+
+        org.junit.jupiter.api.Assertions.assertFalse(view.watchVisible());
     }
 }

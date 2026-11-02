@@ -121,4 +121,39 @@ class DashboardModelTest {
 
         assertThrows(ApiException.class, () -> DashboardModel.load(api, AUTH));
     }
+
+    private static com.marketatlas.ui.api.WatchlistEntry watched(long id) {
+        return new com.marketatlas.ui.api.WatchlistEntry(id, "Asset " + id, "COMMODITY", "USD", null,
+                new java.math.BigDecimal("100.00"), null, null, new java.math.BigDecimal("1.50"),
+                new java.math.BigDecimal("1.5"), null);
+    }
+
+    @org.junit.jupiter.api.Test
+    void watchlistTilesAreMappedAndCappedAtSix() {
+        com.marketatlas.ui.api.ApiClient api = org.mockito.Mockito.mock(com.marketatlas.ui.api.ApiClient.class);
+        org.mockito.Mockito.when(api.listAccounts("Basic abc")).thenReturn(java.util.List.of());
+        org.mockito.Mockito.when(api.watchlist("Basic abc")).thenReturn(java.util.List.of(
+                watched(1), watched(2), watched(3), watched(4), watched(5), watched(6), watched(7), watched(8)));
+
+        DashboardModel.Model model = DashboardModel.load(api, "Basic abc");
+
+        org.junit.jupiter.api.Assertions.assertEquals(DashboardModel.MAX_WATCH, model.watch().size());
+        org.junit.jupiter.api.Assertions.assertEquals(1L, model.watch().get(0).assetId());
+        org.junit.jupiter.api.Assertions.assertEquals("Asset 1", model.watch().get(0).name());
+        org.junit.jupiter.api.Assertions.assertTrue(model.watchAvailable());
+    }
+
+    @org.junit.jupiter.api.Test
+    void aWatchlistFailureDoesNotBreakTheRestOfTheDashboard() {
+        com.marketatlas.ui.api.ApiClient api = org.mockito.Mockito.mock(com.marketatlas.ui.api.ApiClient.class);
+        org.mockito.Mockito.when(api.listAccounts("Basic abc")).thenReturn(java.util.List.of());
+        org.mockito.Mockito.when(api.watchlist("Basic abc")).thenThrow(new com.marketatlas.ui.api.ApiException(
+                com.marketatlas.ui.api.ApiException.Kind.UNAVAILABLE, "down", null));
+
+        DashboardModel.Model model = DashboardModel.load(api, "Basic abc");
+
+        org.junit.jupiter.api.Assertions.assertFalse(model.watchAvailable());
+        org.junit.jupiter.api.Assertions.assertTrue(model.watch().isEmpty());
+        org.junit.jupiter.api.Assertions.assertTrue(model.cards().isEmpty());
+    }
 }

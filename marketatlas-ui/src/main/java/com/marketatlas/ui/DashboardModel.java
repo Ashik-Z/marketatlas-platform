@@ -7,6 +7,7 @@ import com.marketatlas.ui.api.AssetSummary;
 import com.marketatlas.ui.api.Portfolio;
 import com.marketatlas.ui.api.TradePage;
 import com.marketatlas.ui.api.TradeRecord;
+import com.marketatlas.ui.api.WatchlistEntry;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -22,6 +23,7 @@ final class DashboardModel {
 
     static final int MAX_ACCOUNTS = 6;
     static final int MAX_TRADES = 8;
+    static final int MAX_WATCH = 6;
 
     record AccountCard(Long accountId, String name, String currency, BigDecimal totalValue, BigDecimal profitLoss,
                        BigDecimal returnPct, BigDecimal realizedPnl, BigDecimal unrealizedPnl,
@@ -32,7 +34,15 @@ final class DashboardModel {
                        BigDecimal quantity, BigDecimal price, String currency) {
     }
 
-    record Model(List<AccountCard> cards, List<RecentTrade> trades, int totalAccounts) {
+    record WatchTile(Long assetId, String name, String currency, BigDecimal latestClose,
+                     BigDecimal change, BigDecimal changePercent) {
+    }
+
+    record Model(List<AccountCard> cards, List<RecentTrade> trades, int totalAccounts,
+                 List<WatchTile> watch, boolean watchAvailable) {
+        Model(List<AccountCard> cards, List<RecentTrade> trades, int totalAccounts) {
+            this(cards, trades, totalAccounts, List.of(), true);
+        }
     }
 
     private DashboardModel() {
@@ -51,7 +61,26 @@ final class DashboardModel {
         }
         trades.sort(Comparator.comparing(RecentTrade::executedAt, Comparator.nullsLast(Comparator.reverseOrder())));
         List<RecentTrade> newest = trades.size() > MAX_TRADES ? trades.subList(0, MAX_TRADES) : trades;
-        return new Model(List.copyOf(cards), List.copyOf(newest), all.size());
+        List<WatchTile> watch = List.of();
+        boolean watchAvailable = true;
+        try {
+            watch = watchTiles(api.watchlist(authorization));
+        } catch (ApiException e) {
+            watchAvailable = false;
+        }
+        return new Model(List.copyOf(cards), List.copyOf(newest), all.size(), watch, watchAvailable);
+    }
+
+    private static List<WatchTile> watchTiles(List<WatchlistEntry> entries) {
+        List<WatchTile> tiles = new ArrayList<>();
+        for (WatchlistEntry e : entries) {
+            if (tiles.size() == MAX_WATCH) {
+                break;
+            }
+            tiles.add(new WatchTile(e.assetId(), e.name(), e.currency(), e.latestClose(), e.change(),
+                    e.changePercent()));
+        }
+        return List.copyOf(tiles);
     }
 
     static AccountCard card(AccountSummary account, Portfolio p) {

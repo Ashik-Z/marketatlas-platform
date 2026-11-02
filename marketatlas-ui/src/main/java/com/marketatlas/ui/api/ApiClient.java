@@ -187,6 +187,52 @@ public class ApiClient {
         }
     }
 
+    /** The caller's watchlist, newest first. Needs login. */
+    public List<WatchlistEntry> watchlist(String authorization) {
+        try {
+            List<WatchlistEntry> entries = rest.get().uri("/api/watchlist")
+                    .header(HttpHeaders.AUTHORIZATION, authorization)
+                    .retrieve()
+                    .body(new ParameterizedTypeReference<List<WatchlistEntry>>() { });
+            return entries == null ? List.of() : entries;
+        } catch (RestClientResponseException e) {
+            throw map(e);
+        } catch (ResourceAccessException e) {
+            throw unavailable(e);
+        }
+    }
+
+    /** Adds an asset to the watchlist; idempotent. A full watchlist (409) surfaces the API's message as CONFLICT. */
+    public void watch(String authorization, Long assetId) {
+        try {
+            rest.put().uri("/api/watchlist/{id}", assetId)
+                    .header(HttpHeaders.AUTHORIZATION, authorization)
+                    .retrieve()
+                    .toBodilessEntity();
+        } catch (RestClientResponseException e) {
+            if (e.getStatusCode().value() == 409) {
+                throw new ApiException(ApiException.Kind.CONFLICT, detailOr(e, "Your watchlist is full."), null);
+            }
+            throw map(e);
+        } catch (ResourceAccessException e) {
+            throw unavailable(e);
+        }
+    }
+
+    /** Removes an asset from the watchlist; idempotent. */
+    public void unwatch(String authorization, Long assetId) {
+        try {
+            rest.delete().uri("/api/watchlist/{id}", assetId)
+                    .header(HttpHeaders.AUTHORIZATION, authorization)
+                    .retrieve()
+                    .toBodilessEntity();
+        } catch (RestClientResponseException e) {
+            throw map(e);
+        } catch (ResourceAccessException e) {
+            throw unavailable(e);
+        }
+    }
+
     private static final org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger(ApiClient.class);
 
     private static ApiException unavailable(Exception e) {
