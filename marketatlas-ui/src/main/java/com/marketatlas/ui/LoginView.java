@@ -17,7 +17,7 @@ import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 
-@Route("login")
+@Route(value = "login", autoLayout = false)
 @PageTitle("Log in | MarketAtlas")
 public class LoginView extends VerticalLayout implements PublicView {
 

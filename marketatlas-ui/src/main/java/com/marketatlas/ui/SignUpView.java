@@ -19,7 +19,7 @@ import com.vaadin.flow.router.Route;
 
 import java.nio.charset.StandardCharsets;
 
-@Route("signup")
+@Route(value = "signup", autoLayout = false)
 @PageTitle("Sign up | MarketAtlas")
 public class SignUpView extends VerticalLayout implements PublicView {
 
