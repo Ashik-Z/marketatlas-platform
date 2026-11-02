@@ -40,12 +40,6 @@ public class HomeView extends VerticalLayout {
     private final VerticalLayout content = new VerticalLayout();
 
     public HomeView(ApiClient api, UserSession session) {
-        Button logout = new Button("Log out", e -> {
-            session.logout();
-            UI ui = UI.getCurrent();
-            ui.getPage().setLocation("login");
-            VaadinSession.getCurrent().getSession().invalidate();
-        });
 
         cards.addClassName("ma-card-grid");
         watchTiles.addClassName("ma-card-grid");
@@ -61,12 +55,7 @@ public class HomeView extends VerticalLayout {
         content.add(new H2("Your accounts"), accountsNote, cards, new H2("Watchlist"), watchNote, watchTiles,
                 new H2("Latest trades"), tradesNote, trades);
         status.setVisible(false);
-
-        HorizontalLayout links = new HorizontalLayout(
-                link("Browse markets", "market"),
-                link("Backtest lab", "backtest"),
-                link("Accounts", "accounts"));
-        add(new H1("Overview"), new Paragraph("Signed in as " + session.username() + "."), links, status, content, logout);
+        add(new H1("Overview"), new Paragraph("Signed in as " + session.username() + "."), status, content);
 
         load(api, session.authHeader());
     }

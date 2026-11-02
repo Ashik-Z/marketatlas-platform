@@ -163,3 +163,107 @@ html, body {
   color: var(--ma-text);
 }
 .ma-auth-alt a { color: var(--ma-real); text-decoration-color: var(--ma-burgundy); }
+
+/* App shell: drawer brand and footer */
+.ma-brand { display: block; padding: 1rem 1rem 0.5rem; font-size: 1.25rem; font-weight: 700; color: var(--ma-real); }
+.ma-drawer-footer { padding: 1rem; display: flex; flex-direction: column; gap: 0.5rem; color: var(--ma-text-muted); }
+
+/* App shell: AppLayout recomputes text/surface for a light panel, so pin our dark tokens on it and its parts */
+:root:root { --ma-panel: #231519; }
+:root:root vaadin-app-layout,
+:root:root vaadin-app-layout::part(navbar),
+:root:root vaadin-app-layout::part(drawer),
+:root:root vaadin-app-layout::part(content) {
+  --vaadin-text-color: var(--ma-text);
+  --vaadin-text-color-secondary: var(--ma-text-muted);
+  color: var(--ma-text);
+}
+:root:root vaadin-app-layout::part(content) {
+  --aura-surface-color-solid: var(--ma-panel);
+  --aura-surface-opacity: 1;
+  --vaadin-background-color: var(--ma-panel);
+  background: var(--ma-panel);
+}
+:root:root vaadin-side-nav-item {
+  --vaadin-text-color: var(--ma-text);
+  color: var(--ma-text);
+}
+:root:root vaadin-side-nav-item::part(content) {
+  color: var(--ma-text);
+}
+:root:root vaadin-side-nav-item[current]::part(content) {
+  background: var(--ma-burgundy);
+  color: var(--ma-real);
+}
+
+/* Drawer toggle (hamburger): visible gold icon with the same outline as secondary buttons */
+:root:root vaadin-drawer-toggle {
+  color: var(--ma-real);
+  background: transparent;
+  border: 1px solid var(--ma-burgundy);
+  border-radius: 8px;
+}
+:root:root vaadin-drawer-toggle::part(icon) {
+  color: var(--ma-real);
+}
+
+/* Plain links (back links, footers) */
+:root:root a { color: var(--ma-real); text-decoration-color: var(--ma-burgundy); }
+
+/* Popups render outside the app layout: give them the dark card surface and readable text */
+:root:root vaadin-combo-box-overlay,
+:root:root vaadin-select-overlay,
+:root:root vaadin-date-picker-overlay,
+:root:root vaadin-time-picker-overlay {
+  --vaadin-background-color: var(--ma-card);
+  --aura-surface-color-solid: var(--ma-card);
+  --aura-surface-opacity: 1;
+  --vaadin-text-color: var(--ma-text);
+  --vaadin-text-color-secondary: var(--ma-text-muted);
+  color: var(--ma-text);
+}
+:root:root vaadin-combo-box-overlay::part(overlay),
+:root:root vaadin-select-overlay::part(overlay),
+:root:root vaadin-date-picker-overlay::part(overlay),
+:root:root vaadin-time-picker-overlay::part(overlay) {
+  background: var(--ma-card);
+  color: var(--ma-text);
+  border: 1px solid var(--ma-line);
+}
+:root:root vaadin-combo-box-item,
+:root:root vaadin-select-item {
+  color: var(--ma-text);
+}
+:root:root vaadin-combo-box-item[focused],
+:root:root vaadin-combo-box-item:hover,
+:root:root vaadin-select-item[focused],
+:root:root vaadin-select-item:hover {
+  background: var(--ma-burgundy);
+}
+:root:root vaadin-combo-box-item[selected],
+:root:root vaadin-select-item[selected] {
+  color: var(--ma-real);
+}
+:root:root vaadin-date-picker-overlay-content {
+  background: var(--ma-card);
+  color: var(--ma-text);
+}
+:root:root vaadin-date-picker-overlay-content::part(years),
+:root:root vaadin-date-picker-overlay-content::part(toolbar) {
+  background: var(--ma-panel);
+  color: var(--ma-text);
+}
+:root:root vaadin-month-calendar {
+  color: var(--ma-text);
+}
+:root:root vaadin-month-calendar::part(date) {
+  color: var(--ma-text);
+}
+:root:root vaadin-month-calendar::part(month-header),
+:root:root vaadin-month-calendar::part(weekday) {
+  color: var(--ma-text-muted);
+}
+:root:root vaadin-month-calendar::part(selected-date) {
+  background: var(--ma-real);
+  color: var(--ma-panel);
+}
