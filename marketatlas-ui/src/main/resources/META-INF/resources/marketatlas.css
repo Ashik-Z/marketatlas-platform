@@ -279,3 +279,13 @@ html, body {
 :root:root .ma-stat-value.ma-stat-loss { color: var(--ma-loss); }
 .ma-ticket { background: var(--ma-card); border: 1px solid var(--ma-line); border-radius: 0.75rem; padding: 1rem; width: 100%; box-sizing: border-box; }
 .ma-ticket p { margin: 0.75rem 0 0; }
+
+/* backtest lab */
+.ma-lab { max-width: 1100px; margin: 0 auto; }
+.ma-lab > *, .ma-lab vaadin-vertical-layout { min-width: 0; }
+.ma-lab-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); gap: 0.75rem 1rem; width: 100%; box-sizing: border-box; background: var(--ma-card); border: 1px solid var(--ma-line); border-radius: 0.75rem; padding: 1rem; }
+.ma-lab-form > vaadin-button { align-self: end; }
+.ma-lab-wide { grid-column: span 2; }
+@media (max-width: 600px) { .ma-lab-wide { grid-column: auto; } }
+.ma-lab-card { width: 100%; box-sizing: border-box; background: var(--ma-card); border: 1px solid var(--ma-line); border-radius: 0.75rem; padding: 0.75rem; }
+:root:root .ma-stat-sub { color: var(--ma-text-muted); font-size: 0.8rem; }
