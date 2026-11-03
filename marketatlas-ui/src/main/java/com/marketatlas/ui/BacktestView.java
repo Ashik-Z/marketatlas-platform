@@ -7,13 +7,15 @@ import com.marketatlas.ui.api.BacktestParams;
 import com.marketatlas.ui.api.BacktestResult;
 import com.marketatlas.ui.auth.UserSession;
 import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.datepicker.DatePicker;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.html.H2;
+import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.Paragraph;
-import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
+import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.select.Select;
 import com.vaadin.flow.component.textfield.BigDecimalField;
@@ -53,6 +55,8 @@ public class BacktestView extends VerticalLayout {
     private final Grid<Row> metrics = new Grid<>(Row.class, false);
     private final Grid<BacktestResult.Trade> trades = new Grid<>(BacktestResult.Trade.class, false);
     private final EquityChart chart = new EquityChart();
+    private final Div chartCard = new Div(chart);
+    private final Div kpis = new Div();
     private final VerticalLayout result = new VerticalLayout();
 
     public BacktestView(ApiClient api, UserSession session) {
@@ -70,9 +74,15 @@ public class BacktestView extends VerticalLayout {
         cash.setValue(new BigDecimal("10000"));
         slippage.setValue(5);
         asset.setItemLabelGenerator(a -> a.name() + " (" + a.symbol() + ")");
-        asset.setMinWidth("16em");
-        HorizontalLayout windows = new HorizontalLayout(shortWindow, longWindow);
-        strategy.addValueChangeListener(e -> windows.setVisible(SMA.equals(e.getValue())));
+        asset.addClassName("ma-lab-wide");
+        strategy.addValueChangeListener(e -> {
+            boolean sma = SMA.equals(e.getValue());
+            shortWindow.setVisible(sma);
+            longWindow.setVisible(sma);
+        });
+        addClassName("ma-lab");
+        kpis.addClassName("ma-stat-strip");
+        chartCard.addClassName("ma-lab-card");
 
         metrics.addColumn(Row::label).setHeader("").setAutoWidth(true);
         metrics.addColumn(Row::strategy).setHeader("Strategy");
@@ -93,12 +103,13 @@ public class BacktestView extends VerticalLayout {
         status.setVisible(!status.getText().isEmpty());
         result.setPadding(false);
         result.setVisible(false);
-        result.add(headline, metrics, note, chart, new H3("Trades"), trades);
+        result.add(headline, kpis, chartCard, new H3("Metrics"), metrics, note, new H3("Trades"), trades);
 
         Button run = new Button("Run backtest", e -> run());
-        HorizontalLayout form = new HorizontalLayout(asset, strategy, windows, start, end, cash, slippage, run);
-        form.setWrap(true);
-        form.setDefaultVerticalComponentAlignment(Alignment.END);
+        run.addThemeVariants(ButtonVariant.AURA_PRIMARY);
+        Div form = new Div(asset, strategy, shortWindow, longWindow, start, end, cash, slippage, run);
+        form.addClassName("ma-lab-form");
+        form.getChildren().filter(c -> c != run).forEach(c -> ((com.vaadin.flow.component.HasSize) c).setWidthFull());
         add(new H2("Backtest lab"), form, status, result);
     }
 
@@ -122,19 +133,52 @@ public class BacktestView extends VerticalLayout {
         status.setVisible(false);
         headline.setText(r.assetName() + ": " + r.barsUsed() + " daily bars, " + r.firstBarDate() + " to "
                 + r.lastBarDate() + (r.skippedBars() > 0 ? " (" + r.skippedBars() + " unusable bars skipped)" : "") + ".");
-        metrics.setItems(rows(r));
+        List<Row> rows = rows(r);
+        metrics.setItems(rows);
+        showKpis(rows);
         note.setText(r.realTerms() == null
                 ? (r.realTermsNote() == null ? "" : r.realTermsNote())
                 : "Inflation over the period: " + pct(r.realTerms().inflationPct())
-                        + (r.realTerms().cpiEstimated() ? " (latest CPI month estimated)." : "."));
+                + (r.realTerms().cpiEstimated() ? " (latest CPI month estimated)." : "."));
         trades.setItems(r.trades() == null ? List.of() : r.trades());
         result.setVisible(true);
         if (r.equityCurve() != null && !r.equityCurve().isEmpty()) {
-            chart.setVisible(true);
+            chartCard.setVisible(true);
             chart.show(r.equityCurve(), r.benchmarkEquityCurve() == null ? List.of() : r.benchmarkEquityCurve());
         } else {
-            chart.setVisible(false);
+            chartCard.setVisible(false);
         }
+    }
+
+    private void showKpis(List<Row> rows) {
+        kpis.removeAll();
+        for (Row r : rows) {
+            boolean key = List.of("Total return", "Annualized return", "Max drawdown").contains(r.label())
+                    || r.label().startsWith("Real total return");
+            if (!key) {
+                continue;
+            }
+            Span label = new Span(r.label());
+            label.addClassName("ma-stat-label");
+            Span value = new Span(r.strategy());
+            value.addClassName("ma-stat-value");
+            String tone = r.label().startsWith("Max drawdown") ? null : tone(r.strategy());
+            if (tone != null) {
+                value.addClassName(tone);
+            }
+            Span bench = new Span("Buy and hold: " + r.benchmark());
+            bench.addClassName("ma-stat-sub");
+            Div card = new Div(label, value, bench);
+            card.addClassName("ma-stat");
+            kpis.add(card);
+        }
+    }
+
+    static String tone(String value) {
+        if (value.startsWith("-")) {
+            return "ma-stat-loss";
+        }
+        return "n/a".equals(value) ? null : "ma-stat-gain";
     }
 
     private void fail(String message) {
