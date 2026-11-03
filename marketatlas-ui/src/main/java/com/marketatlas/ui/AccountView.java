@@ -23,6 +23,8 @@ import com.vaadin.flow.router.BeforeEvent;
 import com.vaadin.flow.router.HasUrlParameter;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import com.vaadin.flow.component.button.ButtonVariant;
+import com.vaadin.flow.component.html.Div;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -52,7 +54,8 @@ public class AccountView extends VerticalLayout implements HasUrlParameter<Long>
     private final H2 title = new H2("Account");
     private final Paragraph status = new Paragraph();
     private final Paragraph warning = new Paragraph();
-    private final Grid<Row> summary = new Grid<>(Row.class, false);
+    private final Div stats = new Div();
+    private List<Row> shownStats = List.of();
     private final Grid<Portfolio.Position> positions = new Grid<>(Portfolio.Position.class, false);
     private final ComboBox<AssetSummary> asset = new ComboBox<>("Asset");
     private final Select<String> side = new Select<>();
@@ -75,9 +78,8 @@ public class AccountView extends VerticalLayout implements HasUrlParameter<Long>
     public AccountView(ApiClient api, UserSession session) {
         this.api = api;
         this.session = session;
-        summary.addColumn(Row::label).setHeader("Summary").setAutoWidth(true);
-        summary.addColumn(Row::value).setHeader("Amount");
-        summary.setAllRowsVisible(true);
+        addClassName("ma-account");
+        stats.addClassName("ma-stat-strip");
         positions.addColumn(Portfolio.Position::assetName).setHeader("Asset").setAutoWidth(true);
         positions.addColumn(p -> qty(p.quantity())).setHeader("Quantity");
         positions.addColumn(p -> money(p.averageCost())).setHeader("Average cost");
@@ -101,10 +103,13 @@ public class AccountView extends VerticalLayout implements HasUrlParameter<Long>
         asset.addValueChangeListener(e -> pendingKey = null);
         side.addValueChangeListener(e -> pendingKey = null);
         quantity.addValueChangeListener(e -> pendingKey = null);
-        Button place = new Button("Place market order", e -> placeOrder());
+        Button place = new Button("Place order", e -> placeOrder());
+        place.addThemeVariants(ButtonVariant.AURA_PRIMARY);
         HorizontalLayout orderForm = new HorizontalLayout(asset, side, quantity, place);
         orderForm.setDefaultVerticalComponentAlignment(Alignment.END);
         orderForm.setWrap(true);
+        Div ticket = new Div(orderForm, orderStatus);
+        ticket.addClassName("ma-ticket");
 
         trades.addColumn(t -> t.executedAt() == null ? "" : TIME.format(t.executedAt())).setHeader("Time").setAutoWidth(true);
         trades.addColumn(TradeRecord::side).setHeader("Side");
@@ -126,8 +131,8 @@ public class AccountView extends VerticalLayout implements HasUrlParameter<Long>
 
         content.setPadding(false);
         content.setVisible(false);
-        content.add(summary, warning, new H3("Positions"), positions,
-                new H3("Place a market order"), orderForm, orderStatus,
+        content.add(stats, warning, new H3("Positions"), positions,
+                new H3("Place a market order"), ticket,
                 new H3("Trade history"), tradesStatus, trades, new HorizontalLayout(newer, pageLabel, older));
         status.setVisible(false);
         orderStatus.setVisible(false);
@@ -161,7 +166,7 @@ public class AccountView extends VerticalLayout implements HasUrlParameter<Long>
 
     private void show(Portfolio p) {
         title.setText("Account #" + p.accountId() + " (" + p.currency() + ")");
-        summary.setItems(summaryRows(p));
+        showStats(p);
         warning.setText(p.valuationComplete() ? ""
                 : "Some positions have no price yet, so the total value leaves them out.");
         warning.setVisible(!p.valuationComplete());
@@ -172,6 +177,33 @@ public class AccountView extends VerticalLayout implements HasUrlParameter<Long>
         }
         status.setVisible(false);
         content.setVisible(true);
+    }
+
+    private void showStats(Portfolio p) {
+        shownStats = summaryRows(p);
+        stats.removeAll();
+        for (Row r : shownStats) {
+            Span label = new Span(r.label());
+            label.addClassName("ma-stat-label");
+            Span value = new Span(r.value());
+            value.addClassName("ma-stat-value");
+            if (r.label().contains("P&L") || r.label().startsWith("Profit")) {
+                String tone = toneClass(r.value());
+                if (tone != null) {
+                    value.addClassName(tone);
+                }
+            }
+            Div card = new Div(label, value);
+            card.addClassName("ma-stat");
+            stats.add(card);
+        }
+    }
+
+    static String toneClass(String value) {
+        if (value.startsWith("-")) {
+            return "ma-stat-loss";
+        }
+        return "n/a".equals(value) || "0.00".equals(value) ? null : "ma-stat-gain";
     }
 
     void loadTrades() {
@@ -288,8 +320,8 @@ public class AccountView extends VerticalLayout implements HasUrlParameter<Long>
         return content.isVisible();
     }
 
-    Grid<Row> summaryGrid() {
-        return summary;
+    List<Row> statRows() {
+        return shownStats;
     }
 
     Grid<Portfolio.Position> positionsGrid() {

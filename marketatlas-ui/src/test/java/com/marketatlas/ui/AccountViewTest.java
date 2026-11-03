@@ -12,6 +12,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -47,9 +48,17 @@ class AccountViewTest {
         view.open(3L);
 
         assertTrue(view.contentVisible());
-        assertEquals(6, view.summaryGrid().getListDataView().getItemCount());
+        assertEquals(6, view.statRows().size());
         assertEquals(1, view.positionsGrid().getListDataView().getItemCount());
         assertEquals("", view.statusText());
+    }
+
+    @Test
+    void toneClassColoursGainsAndLosses() {
+        assertEquals("ma-stat-loss", AccountView.toneClass("-5.00"));
+        assertEquals("ma-stat-gain", AccountView.toneClass("12.30"));
+        assertNull(AccountView.toneClass("0.00"));
+        assertNull(AccountView.toneClass("n/a"));
     }
 
     @Test
