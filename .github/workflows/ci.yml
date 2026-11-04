@@ -34,3 +34,25 @@ jobs:
         with:
           name: surefire-reports
           path: target/surefire-reports
+  ui:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+
+      - name: Build and test UI
+        working-directory: marketatlas-ui
+        run: ../mvnw -B -ntp verify
+
+      - name: Upload UI test reports on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui-surefire-reports
+          path: marketatlas-ui/target/surefire-reports

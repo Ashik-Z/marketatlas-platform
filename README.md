@@ -123,3 +123,12 @@ Decisions, trade-offs and known limits are written down in [docs/DECISIONS.md](d
 ## Data sources and attribution
 
 Market data: Twelve Data. Inflation and commodity series: FRED, Federal Reserve Bank of St. Louis. Each series stores its source organization and attribution text, and the API returns it.
+### Intended use and data terms
+
+MarketAtlas is a self-hosted, bring-your-own-keys tool for personal and educational use. You supply your own Twelve Data and FRED API keys, and the data you fetch is for your own use under those providers' terms, so check each provider's current terms before relying on it. Do not run a public instance that shows provider data to other people.
+
+- Free-tier coverage can change. For example, silver is not available on the free Twelve Data plan.
+- Only public-domain FRED series are used. Check a series' FRED page before adding another.
+- This product uses the FRED&reg; API but is not endorsed or certified by the Federal Reserve Bank of St. Louis. The notice is also shown in the web UI.
+- Paper trading and backtests are simulations. They are not financial advice or predictions.
+- Licensed under the MIT License (see [LICENSE](LICENSE)).

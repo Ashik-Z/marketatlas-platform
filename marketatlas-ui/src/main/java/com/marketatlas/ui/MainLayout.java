@@ -41,7 +41,9 @@ public class MainLayout extends AppLayout {
             UI.getCurrent().getPage().setLocation("login");
             VaadinSession.getCurrent().getSession().invalidate();
         });
-        Div footer = new Div(user, logout);
+        Span notice = new Span("This product uses the FRED\u00AE API but is not endorsed or certified by the Federal Reserve Bank of St. Louis.");
+        notice.addClassName("ma-notice");
+        Div footer = new Div(user, logout, notice);
         footer.addClassName("ma-drawer-footer");
 
         addToNavbar(new DrawerToggle());
