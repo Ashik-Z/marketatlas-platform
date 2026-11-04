@@ -24,7 +24,7 @@ public class OpenApiConfig {
             "GET /api/assets", "GET /api/assets/{id}",
             "GET /api/issuers", "GET /api/issuers/{id}",
             "GET /api/series", "GET /api/series/{id}/observations",
-            "GET /api/assets/{assetId}/real-prices");
+            "GET /api/assets/{assetId}/real-prices", "GET /api/assets/{assetId}/dca");
 
     private static final Map<String, String> SUMMARIES = Map.ofEntries(
             Map.entry("POST /api/users", "Sign up (always creates a USER)"),
@@ -36,6 +36,7 @@ public class OpenApiConfig {
             Map.entry("POST /api/issuers", "Create an issuer (admin)"),
             Map.entry("GET /api/market-data/history", "Fetch and store daily history (admin; can call Twelve Data)"),
             Map.entry("GET /api/assets/{assetId}/real-prices", "Inflation-adjusted prices in base-month dollars (US CPI, USD assets)"),
+            Map.entry("GET /api/assets/{assetId}/dca", "Dollar-cost averaging: a fixed amount bought monthly, valued in nominal and real (base-month) dollars (US CPI, USD assets)"),
             Map.entry("POST /api/assets/{assetId}/backtest", "Backtest a strategy on stored daily bars, with a buy-and-hold benchmark (login required)"),
             Map.entry("GET /api/series", "List inflation and commodity series"),
             Map.entry("GET /api/series/{id}/observations", "Series observations in a date range"),
@@ -106,7 +107,7 @@ public class OpenApiConfig {
         if (path.startsWith("/api/accounts")) return "Paper trading";
         if (path.startsWith("/api/watchlist")) return "Watchlist";
         if (path.startsWith("/api/market-data")) return "Market data";
-        if (path.endsWith("/real-prices")) return "Inflation";
+        if (path.endsWith("/real-prices") || path.endsWith("/dca")) return "Inflation";
         if (path.endsWith("/backtest")) return "Backtesting";
         if (path.startsWith("/api/series")) return "Series";
         if (path.startsWith("/api/users")) return "Users";

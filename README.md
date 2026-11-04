@@ -51,6 +51,7 @@ Docker must be running (tests use Testcontainers with PostgreSQL).
 | `GET /api/issuers`, `/api/issuers/{id}` | public | Issuers |
 | `GET /api/series`, `/api/series/{id}/observations` | public | Inflation and commodity series |
 | `GET /api/assets/{id}/real-prices` | public | Inflation-adjusted prices (`startDate`, `endDate`, optional `baseMonth=yyyy-MM`) |
+| `GET /api/assets/{id}/dca` | public | Dollar-cost averaging in real terms (`startDate`, `endDate`, `amount` bought each month, optional `baseMonth`) |
 | `POST /api/assets`, `/api/issuers` | admin | Create assets and issuers |
 | `GET /api/market-data/history` | admin | Fetch and store history (can call Twelve Data) |
 | `POST /api/series/{id}/refresh` | admin | Refresh a series from FRED |
