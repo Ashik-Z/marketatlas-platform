@@ -28,6 +28,7 @@ public class OpenApiConfig {
 
     private static final Map<String, String> SUMMARIES = Map.ofEntries(
             Map.entry("POST /api/users", "Sign up (always creates a USER)"),
+            Map.entry("GET /api/me", "Who you are: your username and role (USER or ADMIN)"),
             Map.entry("GET /api/assets", "List assets"),
             Map.entry("GET /api/assets/{id}", "Get an asset"),
             Map.entry("POST /api/assets", "Create an asset (admin)"),
@@ -110,7 +111,7 @@ public class OpenApiConfig {
         if (path.endsWith("/real-prices") || path.endsWith("/dca")) return "Inflation";
         if (path.endsWith("/backtest")) return "Backtesting";
         if (path.startsWith("/api/series")) return "Series";
-        if (path.startsWith("/api/users")) return "Users";
+        if (path.startsWith("/api/users") || path.startsWith("/api/me")) return "Users";
         return "Reference data";
     }
 }
