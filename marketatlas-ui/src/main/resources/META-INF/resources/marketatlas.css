@@ -292,3 +292,4 @@ html, body {
 
 /* data notice */
 :root:root .ma-notice { display: block; margin-top: 0.75rem; color: var(--ma-text-muted); font-size: 0.7rem; line-height: 1.3; }
+:root:root .ma-notice { width: 0; min-width: 100%; overflow-wrap: anywhere; }
