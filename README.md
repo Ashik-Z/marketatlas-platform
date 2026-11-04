@@ -47,6 +47,7 @@ Docker must be running (tests use Testcontainers with PostgreSQL).
 | Endpoint | Access | Purpose |
 |---|---|---|
 | `POST /api/users` | public | Sign up (always creates a USER) |
+| `GET /api/me` | logged-in user | Your username and role (USER or ADMIN), so clients can tailor what they show |
 | `GET /api/assets`, `/api/assets/{id}` | public | Assets |
 | `GET /api/issuers`, `/api/issuers/{id}` | public | Issuers |
 | `GET /api/series`, `/api/series/{id}/observations` | public | Inflation and commodity series |
