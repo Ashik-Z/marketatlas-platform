@@ -289,3 +289,6 @@ html, body {
 @media (max-width: 600px) { .ma-lab-wide { grid-column: auto; } }
 .ma-lab-card { width: 100%; box-sizing: border-box; background: var(--ma-card); border: 1px solid var(--ma-line); border-radius: 0.75rem; padding: 0.75rem; }
 :root:root .ma-stat-sub { color: var(--ma-text-muted); font-size: 0.8rem; }
+
+/* data notice */
+:root:root .ma-notice { display: block; margin-top: 0.75rem; color: var(--ma-text-muted); font-size: 0.7rem; line-height: 1.3; }
