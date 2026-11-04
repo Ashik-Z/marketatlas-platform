@@ -8,6 +8,13 @@ import com.vaadin.flow.component.button.ButtonVariant;
 import com.marketatlas.ui.auth.UserSession;
 import com.vaadin.flow.component.datepicker.DatePicker;
 import com.vaadin.flow.component.html.H2;
+import com.vaadin.flow.component.html.Div;
+import com.vaadin.flow.component.html.H3;
+import com.vaadin.flow.component.html.Span;
+import com.vaadin.flow.component.textfield.BigDecimalField;
+import com.marketatlas.ui.api.DcaResult;
+import java.util.ArrayList;
+import java.util.List;
 import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.orderedlayout.FlexComponent.Alignment;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
@@ -37,6 +44,12 @@ public class AssetDetailView extends VerticalLayout implements HasUrlParameter<L
     private final String authorization;
     private final Button watchButton = new Button();
     private boolean watching;
+    private final BigDecimalField dcaAmount = new BigDecimalField("Amount per month");
+    private final Paragraph dcaStatus = new Paragraph();
+    private final Paragraph dcaNote = new Paragraph();
+    private final Div dcaCards = new Div();
+    private final Div dcaPanel = new Div();
+    private List<String> dcaShown = List.of();
 
     public AssetDetailView(ApiClient api, UserSession session) {
         this.api = api;
@@ -59,7 +72,28 @@ public class AssetDetailView extends VerticalLayout implements HasUrlParameter<L
         watchButton.setVisible(false);
         HorizontalLayout heading = new HorizontalLayout(title, watchButton);
         heading.setAlignItems(Alignment.CENTER);
-        add(heading, new HorizontalLayout(start, end, show), status, summary, note, chart);
+        dcaAmount.setValue(new BigDecimal("100"));
+        Button dcaRun = new Button("Calculate");
+        dcaRun.addThemeVariants(ButtonVariant.AURA_PRIMARY);
+        dcaRun.setDisableOnClick(true);
+        dcaRun.addClickListener(e -> {
+            try {
+                calculateDca();
+            } finally {
+                dcaRun.setEnabled(true);
+            }
+        });
+        dcaStatus.setVisible(false);
+        dcaCards.addClassName("ma-stat-strip");
+        dcaPanel.addClassName("ma-lab-card");
+        HorizontalLayout dcaForm = new HorizontalLayout(dcaAmount, dcaRun);
+        dcaForm.setDefaultVerticalComponentAlignment(Alignment.END);
+        dcaPanel.add(new H3("If you had bought every month"),
+                new Paragraph("Buy a fixed amount on the first trading day of each month between the dates above, "
+                        + "then see what it is worth today, before and after inflation."),
+                dcaForm, dcaStatus, dcaCards, dcaNote);
+        dcaPanel.setVisible(false);
+        add(heading, new HorizontalLayout(start, end, show), status, summary, note, chart, dcaPanel);
     }
 
     @Override
@@ -96,6 +130,8 @@ public class AssetDetailView extends VerticalLayout implements HasUrlParameter<L
             status.setVisible(false);
             chart.setVisible(true);
             chart.show(data);
+            dcaPanel.setVisible(true);
+            clearDca();
         } catch (ApiException e) {
             fail(friendly(e.getMessage()));
         }
@@ -151,6 +187,96 @@ public class AssetDetailView extends VerticalLayout implements HasUrlParameter<L
         return watchButton.isVisible();
     }
 
+    void calculateDca() {
+        BigDecimal amount = dcaAmount.getValue();
+        if (amount == null || amount.signum() <= 0) {
+            dcaFail("Enter an amount greater than zero.");
+            return;
+        }
+        if (start.getValue() == null || end.getValue() == null || start.getValue().isAfter(end.getValue())) {
+            dcaFail("Choose valid dates above.");
+            return;
+        }
+        try {
+            showDca(api.dca(assetId, start.getValue(), end.getValue(), amount));
+        } catch (ApiException e) {
+            dcaFail(friendly(e.getMessage()));
+        }
+    }
+
+    private void showDca(DcaResult r) {
+        clearDca();
+        String base = monthText(r.baseMonth());
+        List<String> shown = new ArrayList<>();
+        addDcaCard(shown, "Invested", money(r.investedNominal()),
+                "In " + base + " dollars: " + money(r.investedReal()), false);
+        addDcaCard(shown, "Worth now", money(r.valueNominal()),
+                "In " + base + " dollars: " + money(r.valueReal()), false);
+        addDcaCard(shown, "Nominal gain", money(r.nominalGain()), pct(r.nominalGainPct()), true);
+        addDcaCard(shown, "Real gain", money(r.realGain()), pct(r.realGainPct()), true);
+        dcaShown = List.copyOf(shown);
+        boolean estimated = r.purchases().stream().anyMatch(DcaResult.Purchase::cpiEstimated);
+        dcaNote.setText(r.purchaseCount() + " purchases of " + money(r.amountPerPurchase()) + " " + r.currency()
+                + ", from " + r.purchases().get(0).date() + " to " + r.valuationDate() + ". Real figures are in "
+                + base + " dollars." + (estimated ? " Some months use the latest published CPI. " : " ")
+                + (r.attribution() == null ? "" : r.attribution()));
+    }
+
+    private void addDcaCard(List<String> shown, String label, String value, String sub, boolean tone) {
+        Span l = new Span(label);
+        l.addClassName("ma-stat-label");
+        Span v = new Span(value);
+        v.addClassName("ma-stat-value");
+        if (tone) {
+            String cls = AccountView.toneClass(value);
+            if (cls != null) {
+                v.addClassName(cls);
+            }
+        }
+        Span s = new Span(sub);
+        s.addClassName("ma-stat-sub");
+        Div card = new Div(l, v, s);
+        card.addClassName("ma-stat");
+        dcaCards.add(card);
+        shown.add(label + ": " + value);
+    }
+
+    private void dcaFail(String message) {
+        clearDca();
+        dcaStatus.setText(message);
+        dcaStatus.setVisible(true);
+    }
+
+    private void clearDca() {
+        dcaCards.removeAll();
+        dcaShown = List.of();
+        dcaNote.setText("");
+        dcaStatus.setVisible(false);
+    }
+
+    private static String monthText(LocalDate d) {
+        return d.getYear() + "-" + String.format("%02d", d.getMonthValue());
+    }
+
+    private static String money(BigDecimal v) {
+        return v == null ? "n/a" : v.setScale(2, RoundingMode.HALF_UP).toPlainString();
+    }
+
+    BigDecimalField dcaAmountField() {
+        return dcaAmount;
+    }
+
+    List<String> dcaSummary() {
+        return dcaShown;
+    }
+
+    String dcaStatusText() {
+        return dcaStatus.getText();
+    }
+
+    boolean dcaPanelVisible() {
+        return dcaPanel.isVisible();
+    }
     static String friendly(String message) {
         if (message != null && message.contains("CPIAUCNS")) {
             return "Inflation data (CPI) has not been loaded yet, so real prices are unavailable. "
@@ -164,6 +290,7 @@ public class AssetDetailView extends VerticalLayout implements HasUrlParameter<L
         status.setVisible(true);
         summary.setText("");
         note.setText("");
+        dcaPanel.setVisible(false);
         chart.setVisible(false);
     }
 

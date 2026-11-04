@@ -93,6 +93,23 @@ public class ApiClient {
         }
     }
 
+    /** Real-terms dollar-cost averaging. Public, database-only read. */
+    public DcaResult dca(Long assetId, LocalDate startDate, LocalDate endDate, java.math.BigDecimal amount) {
+        try {
+            return rest.get()
+                    .uri(b -> b.path("/api/assets/{id}/dca")
+                            .queryParam("startDate", startDate)
+                            .queryParam("endDate", endDate)
+                            .queryParam("amount", amount.toPlainString())
+                            .build(assetId))
+                    .retrieve()
+                    .body(DcaResult.class);
+        } catch (RestClientResponseException e) {
+            throw map(e);
+        } catch (ResourceAccessException e) {
+            throw unavailable(e);
+        }
+    }
     /** Runs a backtest. Needs login: the caller passes the stored Basic Authorization header. */
     public BacktestResult backtest(Long assetId, String authorization, BacktestParams params) {
         try {
