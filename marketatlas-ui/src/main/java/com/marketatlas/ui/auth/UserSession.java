@@ -11,15 +11,27 @@ public class UserSession {
 
     private String username;
     private String authHeader;
+    private boolean admin;
 
     public void login(String username, String password) {
         this.username = username;
         this.authHeader = ApiClient.basicHeader(username, password);
+        this.admin = false;
     }
 
     public void logout() {
         this.username = null;
         this.authHeader = null;
+        this.admin = false;
+    }
+
+    public void login(String username, String password, boolean admin) {
+        login(username, password);
+        this.admin = admin;
+    }
+
+    public boolean isAdmin() {
+        return admin;
     }
 
     public boolean isLoggedIn() {

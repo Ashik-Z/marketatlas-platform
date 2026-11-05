@@ -47,8 +47,8 @@ public class LoginView extends VerticalLayout implements PublicView {
             }
             try {
                 api.checkLogin(name, pass);
-                session.login(name, pass);
-                UI.getCurrent().navigate(HomeView.class);
+                session.login(name, pass, isAdmin(api, ApiClient.basicHeader(name, pass)));
+                UI.getCurrent().navigate("welcome");
             } catch (ApiException ex) {
                 show(error, messageFor(ex));
             } finally {
@@ -59,6 +59,14 @@ public class LoginView extends VerticalLayout implements PublicView {
         setPadding(false);
         add(AuthPage.wrap("Log in", "Welcome back.", username, password, error, login,
                 AuthPage.alt("No account yet?", new Anchor("signup", "Create an account"))));
+    }
+
+    private static boolean isAdmin(ApiClient api, String header) {
+        try {
+            return api.me(header).admin();
+        } catch (ApiException e) {
+            return false;
+        }
     }
 
     static String messageFor(ApiException ex) {

@@ -56,7 +56,7 @@ public class SignUpView extends VerticalLayout implements PublicView {
             try {
                 api.signUp(name, pass);
                 session.login(name, pass);
-                UI.getCurrent().navigate(HomeView.class);
+                UI.getCurrent().navigate("welcome");
             } catch (ApiException ex) {
                 show(error, LoginView.messageFor(ex));
             } finally {
