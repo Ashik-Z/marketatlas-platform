@@ -29,7 +29,7 @@ public class MarketView extends VerticalLayout {
 
     public MarketView(ApiClient api, UserSession session) {
         this.api = api;
-        this.authorization = session.isLoggedIn() ? session.authHeader() : null;
+        this.authorization = session.isLoggedIn() && !session.isAdmin() ? session.authHeader() : null;
 
         grid.addColumn(AssetSummary::name).setHeader("Name").setAutoWidth(true);
         grid.addColumn(AssetSummary::assetClass).setHeader("Class");
@@ -103,3 +103,5 @@ public class MarketView extends VerticalLayout {
         return status.getText();
     }
 }
+
+

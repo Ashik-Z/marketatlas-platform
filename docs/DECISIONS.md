@@ -98,3 +98,8 @@ A short record of what this project is, what it deliberately is not, and why.
 - Paper trading belongs to users. `POST /api/accounts` and `POST /api/accounts/{id}/orders` accept only the USER role, so the administrator gets 403 there. The administrator can still read every account, portfolio and trade history (support and oversight) and still manages assets, price history and series.
 - The UI follows the same rule: for the administrator the Accounts page has no create form and the account page has no order ticket.
 - Existing accounts owned by the bootstrap admin stay readable but can no longer trade.
+
+## Watchlists are for users too
+
+- `/api/watchlist/**` accepts only the USER role (the administrator gets 403), for the same reason as trading: the administrator operates the platform, while watching markets is a personal user feature.
+- The UI follows: for the administrator there is no star column on Markets, no Watch button on the asset page and no Watchlist section on the Overview. The market pages themselves (charts, real prices, the monthly-saving panel) stay public and unchanged.

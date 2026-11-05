@@ -52,17 +52,19 @@ public class HomeView extends VerticalLayout {
         trades.setAllRowsVisible(true);
 
         content.setPadding(false);
-        content.add(new H2("Your accounts"), accountsNote, cards, new H2("Watchlist"), watchNote, watchTiles,
+        com.vaadin.flow.component.html.Div watchSection = new com.vaadin.flow.component.html.Div(new H2("Watchlist"), watchNote, watchTiles);
+        watchSection.setVisible(!session.isAdmin());
+        content.add(new H2("Your accounts"), accountsNote, cards, watchSection,
                 new H2("Latest trades"), tradesNote, trades);
         status.setVisible(false);
         add(new H1("Overview"), new Paragraph("Signed in as " + session.username() + "."), status, content);
 
-        load(api, session.authHeader());
+        load(api, session.authHeader(), session.isAdmin());
     }
 
-    private void load(ApiClient api, String authorization) {
+    private void load(ApiClient api, String authorization, boolean admin) {
         try {
-            show(DashboardModel.load(api, authorization));
+            show(DashboardModel.load(api, authorization, !admin));
         } catch (ApiException e) {
             status.setText(BacktestView.message(e));
             status.setVisible(true);

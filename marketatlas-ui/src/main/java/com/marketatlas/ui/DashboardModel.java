@@ -50,6 +50,10 @@ final class DashboardModel {
 
     /** Throws ApiException only when the account list itself cannot be loaded. */
     static Model load(ApiClient api, String authorization) {
+        return load(api, authorization, true);
+    }
+
+    static Model load(ApiClient api, String authorization, boolean includeWatchlist) {
         List<AccountSummary> all = api.listAccounts(authorization);
         List<AccountSummary> shown = all.size() > MAX_ACCOUNTS ? all.subList(0, MAX_ACCOUNTS) : all;
         Map<Long, String> assetNames = assetNames(api);
@@ -64,7 +68,9 @@ final class DashboardModel {
         List<WatchTile> watch = List.of();
         boolean watchAvailable = true;
         try {
-            watch = watchTiles(api.watchlist(authorization));
+            if (includeWatchlist) {
+                watch = watchTiles(api.watchlist(authorization));
+            }
         } catch (ApiException e) {
             watchAvailable = false;
         }

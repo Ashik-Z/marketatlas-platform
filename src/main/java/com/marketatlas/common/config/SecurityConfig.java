@@ -38,7 +38,7 @@ public class SecurityConfig {
                         .requestMatchers("/error").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/users").permitAll()
                         .requestMatchers("/api/me").hasAnyRole("USER", "ADMIN")
-                        .requestMatchers("/api/watchlist", "/api/watchlist/**").hasAnyRole("USER", "ADMIN")
+                        .requestMatchers("/api/watchlist", "/api/watchlist/**").hasRole("USER")
                         .requestMatchers(HttpMethod.POST, "/api/accounts", "/api/accounts/*/orders").hasRole("USER")
                         .requestMatchers("/api/accounts", "/api/accounts/**").hasAnyRole("USER", "ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/assets/*/backtest").hasAnyRole("USER", "ADMIN")
@@ -58,3 +58,4 @@ public class SecurityConfig {
         return new BCryptPasswordEncoder();
     }
 }
+

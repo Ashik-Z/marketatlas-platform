@@ -157,4 +157,13 @@ class WatchlistIntegrationTest {
         mockMvc.perform(put("/api/watchlist/" + gold.getId()).header("Authorization", alice))
                 .andExpect(status().isNoContent());
     }
-}
+
+    @Test
+    void theAdministratorCannotUseAWatchlist() throws Exception {
+        String admin = "Basic " + java.util.Base64.getEncoder()
+                .encodeToString("admin:test-only-password".getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        mockMvc.perform(get("/api/watchlist").header("Authorization", admin)).andExpect(status().isForbidden());
+        mockMvc.perform(put("/api/watchlist/" + gold.getId()).header("Authorization", admin))
+                .andExpect(status().isForbidden());
+    }}
+
