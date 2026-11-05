@@ -53,7 +53,7 @@ public class AssetDetailView extends VerticalLayout implements HasUrlParameter<L
 
     public AssetDetailView(ApiClient api, UserSession session) {
         this.api = api;
-        this.authorization = session.isLoggedIn() ? session.authHeader() : null;
+        this.authorization = session.isLoggedIn() && !session.isAdmin() ? session.authHeader() : null;
         end.setValue(LocalDate.now());
         start.setValue(end.getValue().minusYears(2));
         Button show = new Button("Show");
@@ -322,3 +322,4 @@ public class AssetDetailView extends VerticalLayout implements HasUrlParameter<L
         return chart.isVisible();
     }
 }
+
