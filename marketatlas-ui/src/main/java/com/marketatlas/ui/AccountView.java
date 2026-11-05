@@ -131,8 +131,13 @@ public class AccountView extends VerticalLayout implements HasUrlParameter<Long>
 
         content.setPadding(false);
         content.setVisible(false);
+        H3 orderHeading = new H3("Place a market order");
+        if (session.isAdmin()) {
+            orderHeading.setVisible(false);
+            ticket.setVisible(false);
+        }
         content.add(stats, warning, new H3("Positions"), positions,
-                new H3("Place a market order"), ticket,
+                orderHeading, ticket,
                 new H3("Trade history"), tradesStatus, trades, new HorizontalLayout(newer, pageLabel, older));
         status.setVisible(false);
         orderStatus.setVisible(false);

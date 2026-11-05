@@ -60,8 +60,8 @@ A fresh database has no assets. With the stack running and ADMIN_PASSWORD set in
 | `POST /api/assets`, `/api/issuers` | admin | Create assets and issuers |
 | `GET /api/market-data/history` | admin | Fetch and store history (can call Twelve Data) |
 | `POST /api/series/{id}/refresh` | admin | Refresh a series from FRED |
-| `POST/GET /api/accounts`, `GET /api/accounts/{id}` | logged-in user | Own accounts only (admin sees all) |
-| `POST /api/accounts/{id}/orders` | logged-in user | Place a market order (`Idempotency-Key` header required) |
+| `POST/GET /api/accounts`, `GET /api/accounts/{id}` | logged-in user | Own accounts only (admin can read all, but only users create accounts) |
+| `POST /api/accounts/{id}/orders` | logged-in user | Place a market order (`Idempotency-Key` header required; users only, the admin gets 403) |
 | `GET /api/accounts/{id}/portfolio`, `/trades` | logged-in user | Valuation with P&L; paginated trade history |
 | `POST /api/assets/{id}/backtest` | logged-in user | Backtest a strategy against buy-and-hold, in nominal and real terms |
 | `GET /api/watchlist`, `PUT/DELETE /api/watchlist/{assetId}` | logged-in user | Personal watchlist with the latest close and nominal day change (50 assets maximum) |
@@ -139,5 +139,6 @@ MarketAtlas is a self-hosted, bring-your-own-keys tool for personal and educatio
 - This product uses the FRED&reg; API but is not endorsed or certified by the Federal Reserve Bank of St. Louis. The notice is also shown in the web UI.
 - Paper trading and backtests are simulations. They are not financial advice or predictions.
 - Licensed under the MIT License (see [LICENSE](LICENSE)).
+
 
 

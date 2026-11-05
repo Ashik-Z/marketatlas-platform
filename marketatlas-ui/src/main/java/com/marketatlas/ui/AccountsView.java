@@ -52,6 +52,7 @@ public class AccountsView extends VerticalLayout {
         form.setDefaultVerticalComponentAlignment(Alignment.END);
         form.setWrap(true);
         status.setVisible(false);
+        form.setVisible(!session.isAdmin());
         add(new H2("Trading accounts"), form, status, grid);
         reload();
     }
@@ -61,7 +62,7 @@ public class AccountsView extends VerticalLayout {
             List<AccountSummary> accounts = api.listAccounts(session.authHeader());
             grid.setItems(accounts);
             if (accounts.isEmpty()) {
-                say("You have no accounts yet. Create one above.");
+                say(session.isAdmin() ? "No accounts have been created yet." : "You have no accounts yet. Create one above.");
             }
         } catch (ApiException e) {
             say(BacktestView.message(e));

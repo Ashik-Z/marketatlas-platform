@@ -32,8 +32,22 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Transactional
 class TradeHistoryApiIntegrationTest {
 
+    private static final String ADMIN_AUTH = "Basic " + java.util.Base64.getEncoder()
+            .encodeToString("admin:test-only-password".getBytes(java.nio.charset.StandardCharsets.UTF_8));
+
+    private static String authFor(String url) {
+        return url.startsWith("/api/assets") || url.startsWith("/api/issuers") ? ADMIN_AUTH : AUTH;
+    }
+
+    @org.junit.jupiter.api.BeforeEach
+    void signUpTrader() throws Exception {
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/api/users")
+                .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                .content("{\"username\":\"trader\",\"password\":\"a-long-test-password\"}"));
+    }
+
     private static final String AUTH = "Basic " + Base64.getEncoder()
-            .encodeToString("admin:test-only-password".getBytes(StandardCharsets.UTF_8));
+            .encodeToString("trader:a-long-test-password".getBytes(StandardCharsets.UTF_8));
 
     @Autowired private MockMvc mockMvc;
     @Autowired private AssetRepository assetRepository;
@@ -41,8 +55,7 @@ class TradeHistoryApiIntegrationTest {
     @Autowired private Clock clock;
 
     private static MockHttpServletRequestBuilder post(String url, String json) {
-        MockHttpServletRequestBuilder request = MockMvcRequestBuilders.post(url)
-                .header("Authorization", AUTH)
+        MockHttpServletRequestBuilder request = MockMvcRequestBuilders.post(url).header("Authorization", authFor(url))
                 .contentType(MediaType.APPLICATION_JSON).content(json);
         return url.endsWith("/orders")
                 ? request.header("Idempotency-Key", UUID.randomUUID().toString())
@@ -150,3 +163,6 @@ class TradeHistoryApiIntegrationTest {
                 .andExpect(status().isNotFound());
     }
 }
+
+
+
