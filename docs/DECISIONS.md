@@ -92,3 +92,9 @@ A short record of what this project is, what it deliberately is not, and why.
 - After login or sign-up the UI opens a guide page (`/welcome`) and keeps a "Guide" item in the sidebar. Regular users get a six-step tour of what the app offers.
 - The UI learns the caller's role from `GET /api/me` at login (stored in the session) rather than guessing from the username.
 - The admin sees a different guide. Admin tasks (assets, price history, series refresh, scheduled refresh) stay in the API docs (Swagger UI), so no admin forms were built. The guide links there through `marketatlas.ui.docs-url`, a separate setting because the browser-facing URL differs from the API URL the UI container uses.
+
+## The administrator is read-only on trading
+
+- Paper trading belongs to users. `POST /api/accounts` and `POST /api/accounts/{id}/orders` accept only the USER role, so the administrator gets 403 there. The administrator can still read every account, portfolio and trade history (support and oversight) and still manages assets, price history and series.
+- The UI follows the same rule: for the administrator the Accounts page has no create form and the account page has no order ticket.
+- Existing accounts owned by the bootstrap admin stay readable but can no longer trade.

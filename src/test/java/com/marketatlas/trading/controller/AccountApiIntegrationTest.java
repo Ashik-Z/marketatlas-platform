@@ -25,8 +25,15 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Transactional
 class AccountApiIntegrationTest {
 
+    @org.junit.jupiter.api.BeforeEach
+    void signUpTrader() throws Exception {
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/api/users")
+                .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                .content("{\"username\":\"trader\",\"password\":\"a-long-test-password\"}"));
+    }
+
     private static final String AUTH = "Basic " + Base64.getEncoder()
-            .encodeToString("admin:test-only-password".getBytes(StandardCharsets.UTF_8));
+            .encodeToString("trader:a-long-test-password".getBytes(StandardCharsets.UTF_8));
 
     @Autowired
     private MockMvc mockMvc;
