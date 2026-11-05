@@ -32,8 +32,9 @@ public class MainLayout extends AppLayout {
         SideNavItem backtest = new SideNavItem("Backtest lab", "backtest", VaadinIcon.FLASK.create());
         SideNavItem accounts = new SideNavItem("Accounts", "accounts", VaadinIcon.WALLET.create());
         accounts.setMatchNested(true);
+        SideNavItem guide = new SideNavItem("Guide", "welcome", VaadinIcon.LIGHTBULB.create());
         accounts.setPathAliases(Set.of("account"));
-        nav.addItem(overview, markets, backtest, accounts);
+        nav.addItem(overview, markets, backtest, accounts, guide);
 
         Span user = new Span("Signed in as " + session.username());
         Button logout = new Button("Log out", e -> {
@@ -54,3 +55,4 @@ public class MainLayout extends AppLayout {
         return nav.getItems().stream().map(SideNavItem::getLabel).toList();
     }
 }
+

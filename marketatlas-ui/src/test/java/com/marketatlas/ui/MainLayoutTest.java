@@ -12,12 +12,13 @@ import static org.mockito.Mockito.when;
 class MainLayoutTest {
 
     @Test
-    void sidebarListsTheFourMainPagesInOrder() {
+    void sidebarListsTheMainPagesInOrder() {
         UserSession session = mock(UserSession.class);
         when(session.username()).thenReturn("alice");
 
         MainLayout layout = new MainLayout(session);
 
-        assertEquals(List.of("Overview", "Markets", "Backtest lab", "Accounts"), layout.navLabels());
+        assertEquals(List.of("Overview", "Markets", "Backtest lab", "Accounts", "Guide"), layout.navLabels());
     }
 }
+

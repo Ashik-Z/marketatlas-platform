@@ -61,6 +61,19 @@ public class ApiClient {
         }
     }
 
+    /** Who the credentials belong to (username and role). Needs login. */
+    public Me me(String authorization) {
+        try {
+            return rest.get().uri("/api/me")
+                    .header(HttpHeaders.AUTHORIZATION, authorization)
+                    .retrieve()
+                    .body(Me.class);
+        } catch (RestClientResponseException e) {
+            throw map(e);
+        } catch (ResourceAccessException e) {
+            throw unavailable(e);
+        }
+    }
     /** Lists assets. The endpoint is public, so no credentials are sent. */
     public List<AssetSummary> listAssets() {
         try {

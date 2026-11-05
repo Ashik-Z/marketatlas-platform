@@ -86,3 +86,9 @@ A short record of what this project is, what it deliberately is not, and why.
 - **Silver is not tracked.** Twelve Data serves `XAG/USD` only on its Grow and Venture plans; on the free plan it answers 404, which the API reports as 502. Silver was removed from the local database. Registering it again needs a paid plan or another provider; gold works on the free plan.
 - Assets registered before the currency field existed keep a blank currency until it is set. There is no edit endpoint, so update `asset.currency` in the database directly; until then real prices and orders refuse the asset.
 - The watchlist day change compares the last two stored bars, so it can span a weekend or a gap in the stored data.
+
+## Welcome page after login
+
+- After login or sign-up the UI opens a guide page (`/welcome`) and keeps a "Guide" item in the sidebar. Regular users get a six-step tour of what the app offers.
+- The UI learns the caller's role from `GET /api/me` at login (stored in the session) rather than guessing from the username.
+- The admin sees a different guide. Admin tasks (assets, price history, series refresh, scheduled refresh) stay in the API docs (Swagger UI), so no admin forms were built. The guide links there through `marketatlas.ui.docs-url`, a separate setting because the browser-facing URL differs from the API URL the UI container uses.
