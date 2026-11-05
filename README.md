@@ -42,6 +42,10 @@ Docker must be running (tests use Testcontainers with PostgreSQL).
 ./mvnw test          # Windows: .\mvnw.cmd test
 ```
 
+## Seeding sample data
+
+A fresh database has no assets. With the stack running and ADMIN_PASSWORD set in .env, run `.\scripts\seed.ps1` (PowerShell) to register Microsoft, Alphabet, Spotify, HP and Dell and fetch two years of daily prices for each. It skips assets that already exist and pauses between fetches to respect the free Twelve Data rate limit (8 calls a minute). Gold and inflation data are added separately through the API docs (see the admin guide in the UI).
+
 ## API overview
 
 | Endpoint | Access | Purpose |
@@ -135,4 +139,5 @@ MarketAtlas is a self-hosted, bring-your-own-keys tool for personal and educatio
 - This product uses the FRED&reg; API but is not endorsed or certified by the Federal Reserve Bank of St. Louis. The notice is also shown in the web UI.
 - Paper trading and backtests are simulations. They are not financial advice or predictions.
 - Licensed under the MIT License (see [LICENSE](LICENSE)).
+
 
