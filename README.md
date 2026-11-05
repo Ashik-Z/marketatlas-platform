@@ -116,7 +116,7 @@ US CPI rose 9.25% over the period, so both beat inflation; the trend rule gave u
 The UI pages:
 
 - **Overview** (`/`) is the landing page: one P&L card per account, your watchlist and the latest trades across accounts. A sidebar links the main pages.
-- **Markets** (`/market`) lists the assets; a row opens the asset page with the nominal vs inflation-adjusted price chart (USD assets only). The star column adds or removes an asset from your watchlist, and the asset page has the same Watch button.
+- **Markets** (`/market`) lists the assets; a row opens the asset page with the nominal vs inflation-adjusted price chart (USD assets only). The star column adds or removes an asset from your watchlist, and the asset page has the same Watch button (watchlists are for users; the admin has none). Under the chart, a monthly-saving panel buys a fixed amount each month and shows the gain before and after inflation.
 - **Backtest lab** (`/backtest`) runs the backtester and shows strategy vs buy-and-hold metrics (nominal and real), the equity curves and the trades.
 - **Accounts** (`/accounts`, `/account/{id}`) create paper-trading accounts, show the portfolio with realized and unrealized P&L, place market orders and list the trade history.
 - **Guide** (/welcome) opens right after login or sign-up and stays in the sidebar. Regular users get a tour of the app. The admin gets a guide to the admin-only tasks, which run in the API docs (Swagger UI); its link comes from marketatlas.ui.docs-url.
@@ -139,6 +139,7 @@ MarketAtlas is a self-hosted, bring-your-own-keys tool for personal and educatio
 - This product uses the FRED&reg; API but is not endorsed or certified by the Federal Reserve Bank of St. Louis. The notice is also shown in the web UI.
 - Paper trading and backtests are simulations. They are not financial advice or predictions.
 - Licensed under the MIT License (see [LICENSE](LICENSE)).
+
 
 
 
