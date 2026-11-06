@@ -44,6 +44,11 @@ foreach ($c in $companies) {
     $created += $c
 }
 
+if (@(Invoke-RestMethod "$Api/api/assets?symbol=$([uri]::EscapeDataString('XAU/USD'))" | Where-Object { $_ }).Count -eq 0) {
+    $g = Send-Json Post "/api/assets" @{ name = "Gold Spot"; assetClass = "COMMODITY"; symbol = "XAU/USD"; currency = "USD"; unit = "troy ounce" }
+    Write-Host "added  XAU/USD (asset $($g.id))"
+    $created += @{ name = "Gold Spot"; symbol = "XAU/USD" }
+} else { Write-Host "skip   XAU/USD (already registered)" }
 $end = (Get-Date).ToString("yyyy-MM-dd")
 $start = (Get-Date).AddYears(-2).ToString("yyyy-MM-dd")
 $i = 0
@@ -51,11 +56,21 @@ foreach ($c in $created) {
     if ($i++ -gt 0) { Start-Sleep -Seconds $PauseSeconds }
     try {
         $bars = Invoke-RestMethod -Headers $auth -TimeoutSec 180 `
-            -Uri "$Api/api/market-data/history?symbol=$($c.symbol)&startDate=$start&endDate=$end&interval=1day"
+            -Uri "$Api/api/market-data/history?symbol=$([uri]::EscapeDataString($c.symbol))&startDate=$start&endDate=$end&interval=1day"
         Write-Host "fetched $($c.symbol): $(@($bars).Count) bars"
     } catch {
         Write-Warning "fetch failed for $($c.symbol): $($_.Exception.Message)"
     }
 }
-Write-Host "done."
+$series = @(Invoke-RestMethod -Headers $auth "$Api/api/series")
+$cpiSeries = @($series | ForEach-Object { $_ }) | Where-Object { $_.externalId -eq 'CPIAUCNS' } | Select-Object -First 1
+if ($cpiSeries) {
+    $cpiStart = (Get-Date).AddYears(-3).ToString("yyyy-MM-dd")
+    try {
+        Invoke-RestMethod -Method Post -Headers $auth -TimeoutSec 120 -Uri "$Api/api/series/$($cpiSeries.id)/refresh?startDate=$cpiStart&endDate=$end" | Out-Null
+        Write-Host "loaded CPI (series $($cpiSeries.id))"
+    } catch { Write-Warning "CPI refresh failed: $($_.Exception.Message)" }
+} else { Write-Warning "CPIAUCNS series not found" }Write-Host "done."
+
+
 
