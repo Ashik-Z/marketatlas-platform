@@ -47,6 +47,18 @@ public class ApiClient {
         }
     }
 
+    /**
+     * Fire-and-forget request that wakes a sleeping API (free hosting stops it when idle).
+     * Never throws; the answer is ignored.
+     */
+    public void warmUp() {
+        try {
+            rest.get().uri("/api/assets").retrieve().toBodilessEntity();
+        } catch (RuntimeException ignored) {
+            // best effort only
+        }
+    }
+
     /** Verifies credentials with a cheap authenticated call; returns normally only on success. */
     public void checkLogin(String username, String password) {
         try {
@@ -294,6 +306,8 @@ public class ApiClient {
             case 409 -> new ApiException(ApiException.Kind.DUPLICATE_USER, "That username is not available.", null);
             case 429 -> new ApiException(ApiException.Kind.RATE_LIMITED, "Too many attempts. Please wait and try again.",
                     retryAfter(e));
+            case 502, 503, 504 -> new ApiException(ApiException.Kind.UNAVAILABLE,
+                    "The server is waking up, which can take up to 3 minutes. Please try again shortly.", null);
             default -> new ApiException(ApiException.Kind.UNAVAILABLE, "The MarketAtlas API returned an error (" + status + ").", null);
         };
     }

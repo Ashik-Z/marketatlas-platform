@@ -61,4 +61,26 @@ class MeClientTest {
         ApiException e = assertThrows(ApiException.class, () -> client.me("Basic nope"));
         assertEquals(ApiException.Kind.INVALID_CREDENTIALS, e.kind());
     }
+
+    @Test
+    void aSleepingApiIsReportedAsWakingUp() {
+        for (HttpStatus status : new HttpStatus[] {HttpStatus.BAD_GATEWAY, HttpStatus.SERVICE_UNAVAILABLE, HttpStatus.GATEWAY_TIMEOUT}) {
+            server.reset();
+            server.expect(requestTo("http://api.test/api/me")).andRespond(withStatus(status));
+
+            ApiException ex = assertThrows(ApiException.class, () -> client.me("Basic abc"));
+
+            assertEquals(ApiException.Kind.UNAVAILABLE, ex.kind());
+            assertTrue(ex.getMessage().contains("waking up"));
+        }
+    }
+
+    @Test
+    void warmUpNeverThrows() {
+        server.expect(requestTo("http://api.test/api/assets")).andRespond(withStatus(HttpStatus.BAD_GATEWAY));
+
+        client.warmUp();
+
+        server.verify();
+    }
 }

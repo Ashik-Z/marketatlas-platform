@@ -125,6 +125,16 @@ The UI pages:
 
 For UI development, run `.\mvnw.cmd spring-boot:run` inside `marketatlas-ui/` while the API is up on port 8080.
 
+## Production deployment
+
+The same code runs in production with no changes to the local setup: GitHub is the source, Render builds the two Dockerfiles (API at the repo root, UI in `marketatlas-ui/`), and the database is a separate Neon PostgreSQL project. Local Docker Compose and the local database are untouched.
+
+- **Configuration is environment variables only; no secrets are in the repo.** API: `SPRING_DATASOURCE_URL` (Neon direct host, `?sslmode=require`), `SPRING_DATASOURCE_USERNAME`, `SPRING_DATASOURCE_PASSWORD`, `ADMIN_PASSWORD`, `TWELVEDATA_API_KEY`, `FRED_API_KEY`. UI: `MARKETATLAS_API_BASE_URL`, `MARKETATLAS_UI_DOCS_URL`, `SERVER_FORWARD_HEADERS_STRATEGY=native`.
+- **Database changes** are Flyway migrations, applied automatically at API start-up. Never edit an applied migration; add a new one.
+- **Free tier behaviour:** services sleep after 15 idle minutes and take about 2 to 3 minutes to wake. The login page pings the API and shows a "waking up" message meanwhile. Scheduled refresh is off, so prices only update when you run a refresh or the seed script.
+- **Deploy:** merge to `main`; Render redeploys after CI passes.
+- **Seed production data:** `.\scripts\seed.ps1 -Api https://<your-api>.onrender.com` (prompts for the admin password).
+
 ## Design notes
 
 Decisions, trade-offs and known limits are written down in [docs/DECISIONS.md](docs/DECISIONS.md): data handling, the security model, rate limits, and how provider quirks (weekend bars, rate limits, missing CPI months) are handled.
