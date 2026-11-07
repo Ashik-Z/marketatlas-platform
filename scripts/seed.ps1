@@ -6,9 +6,14 @@ param(
     [int]$PauseSeconds = 10
 )
 
-$line = Get-Content (Join-Path $PSScriptRoot "..\.env") | Where-Object { $_ -match '^\s*ADMIN_PASSWORD=' } | Select-Object -First 1
-if (-not $line) { throw "ADMIN_PASSWORD not found in .env" }
-$pass = ($line -replace '^\s*ADMIN_PASSWORD=', '').Trim().Trim('"').Trim("'")
+if ($Api -match '^https?://(localhost|127\.0\.0\.1)') {
+    $line = Get-Content (Join-Path $PSScriptRoot "..\.env") | Where-Object { $_ -match '^\s*ADMIN_PASSWORD=' } | Select-Object -First 1
+    if (-not $line) { throw "ADMIN_PASSWORD not found in .env" }
+    $pass = ($line -replace '^\s*ADMIN_PASSWORD=', '').Trim().Trim('"').Trim("'")
+} else {
+    $sec = Read-Host "Admin password for $Api" -AsSecureString
+    $pass = [Net.NetworkCredential]::new("", $sec).Password
+}
 $token = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes("${AdminUser}:$pass"))
 $auth = @{ Authorization = "Basic $token" }
 
@@ -25,7 +30,7 @@ function Send-Json($method, $path, $body) {
         -Body ($body | ConvertTo-Json) -TimeoutSec 120
 }
 
-$issuers = @(Invoke-RestMethod "$Api/api/issuers")
+$issuers = @(Invoke-RestMethod "$Api/api/issuers" -TimeoutSec 300)
 $created = @()
 
 foreach ($c in $companies) {
@@ -71,6 +76,7 @@ if ($cpiSeries) {
         Write-Host "loaded CPI (series $($cpiSeries.id))"
     } catch { Write-Warning "CPI refresh failed: $($_.Exception.Message)" }
 } else { Write-Warning "CPIAUCNS series not found" }Write-Host "done."
+
 
 
 
