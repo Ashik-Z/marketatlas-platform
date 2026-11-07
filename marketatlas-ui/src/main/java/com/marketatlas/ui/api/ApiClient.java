@@ -154,6 +154,20 @@ public class ApiClient {
         }
     }
 
+    public List<UserSummary> listUsers(String authorization) {
+        try {
+            List<UserSummary> users = rest.get().uri("/api/users")
+                    .header(HttpHeaders.AUTHORIZATION, authorization)
+                    .retrieve()
+                    .body(new ParameterizedTypeReference<List<UserSummary>>() { });
+            return users == null ? List.of() : users;
+        } catch (RestClientResponseException e) {
+            throw map(e);
+        } catch (ResourceAccessException e) {
+            throw unavailable(e);
+        }
+    }
+
     public AccountSummary createAccount(String authorization, String name, String currency, BigDecimal startingBalance) {
         try {
             return rest.post().uri("/api/accounts")

@@ -51,6 +51,7 @@ A fresh database has no assets. With the stack running and ADMIN_PASSWORD set in
 | Endpoint | Access | Purpose |
 |---|---|---|
 | `POST /api/users` | public | Sign up (always creates a USER) |
+| `GET /api/users` | admin | List registered users, newest first (no password data) |
 | `GET /api/me` | logged-in user | Your username and role (USER or ADMIN), so clients can tailor what they show |
 | `GET /api/assets`, `/api/assets/{id}` | public | Assets |
 | `GET /api/issuers`, `/api/issuers/{id}` | public | Issuers |
@@ -120,6 +121,7 @@ The UI pages:
 - **Backtest lab** (`/backtest`) runs the backtester and shows strategy vs buy-and-hold metrics (nominal and real), the equity curves and the trades.
 - **Accounts** (`/accounts`, `/account/{id}`) create paper-trading accounts, show the portfolio with realized and unrealized P&L, place market orders and list the trade history.
 - **Guide** (/welcome) opens right after login or sign-up and stays in the sidebar. Regular users get a tour of the app. The admin gets a guide to the admin-only tasks, which run in the API docs (Swagger UI); its link comes from marketatlas.ui.docs-url.
+- **Users** (`/users`, admin only) is a read-only list of everyone who has signed up: username, role and registration time, never password data.
 
 For UI development, run `.\mvnw.cmd spring-boot:run` inside `marketatlas-ui/` while the API is up on port 8080.
 
@@ -139,6 +141,7 @@ MarketAtlas is a self-hosted, bring-your-own-keys tool for personal and educatio
 - This product uses the FRED&reg; API but is not endorsed or certified by the Federal Reserve Bank of St. Louis. The notice is also shown in the web UI.
 - Paper trading and backtests are simulations. They are not financial advice or predictions.
 - Licensed under the MIT License (see [LICENSE](LICENSE)).
+
 
 
 

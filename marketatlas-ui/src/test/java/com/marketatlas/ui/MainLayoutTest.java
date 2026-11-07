@@ -20,5 +20,15 @@ class MainLayoutTest {
 
         assertEquals(List.of("Overview", "Markets", "Backtest lab", "Accounts", "Guide"), layout.navLabels());
     }
-}
+
+    @Test
+    void theAdminSeesAnExtraUsersPageBeforeTheGuide() {
+        UserSession session = mock(UserSession.class);
+        when(session.username()).thenReturn("admin");
+        when(session.isAdmin()).thenReturn(true);
+
+        assertEquals(List.of("Overview", "Markets", "Backtest lab", "Accounts", "Users", "Guide"),
+                new MainLayout(session).navLabels());
+    }}
+
 

@@ -62,9 +62,10 @@ final class WelcomeGuide {
                                 + "stored prices and series by itself. It stops early if a provider rate-limits.",
                         "Open the API docs", docsUrl, true),
                 new Step("See what only you see",
-                        "The Accounts page lists every user's paper accounts, while regular users only ever see "
+                        "The Users page lists everyone who has signed up, and the Accounts page lists every user's paper accounts, while regular users only ever see "
                                 + "their own. Paper trading and watchlists are for users, so you can read accounts but not trade.",
-                        "Open Accounts", "accounts", false));
+                        "Open Users", "users", false));
     }
 }
+
 
