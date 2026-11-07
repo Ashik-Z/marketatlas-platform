@@ -56,6 +56,8 @@ public class LoginView extends VerticalLayout implements PublicView {
             }
         });
 
+        java.util.concurrent.CompletableFuture.runAsync(api::warmUp);
+
         setPadding(false);
         add(AuthPage.wrap("Log in", "Welcome back.", username, password, error, login,
                 AuthPage.alt("No account yet?", new Anchor("signup", "Create an account"))));

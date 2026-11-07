@@ -42,7 +42,7 @@ final class WelcomeGuide {
         return List.of(
                 new Step("Open the API docs",
                         "Admin tasks run through the API docs (Swagger UI). Click Authorize, choose basicAuth, "
-                                + "and sign in with the admin username and password from your .env file.",
+                                + "and sign in with the admin username and the ADMIN_PASSWORD you configured.",
                         "Open the API docs", docsUrl, true),
                 new Step("Register issuers and assets",
                         "POST /api/issuers and POST /api/assets add what users can track. Set the currency and "

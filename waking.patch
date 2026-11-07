@@ -1,0 +1,127 @@
+From ecbf1d385536618acf26cfa145338855ed818ca7 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Sun, 8 Nov 2026 00:55:35 +0600
+Subject: [PATCH] Show a waking-up message for 502/503/504, warm the API from
+ the login page, document production
+
+---
+ README.md                                     | 10 +++++++++
+ .../java/com/marketatlas/ui/LoginView.java    |  2 ++
+ .../java/com/marketatlas/ui/WelcomeGuide.java |  2 +-
+ .../com/marketatlas/ui/api/ApiClient.java     | 14 ++++++++++++
+ .../com/marketatlas/ui/api/MeClientTest.java  | 22 +++++++++++++++++++
+ 5 files changed, 49 insertions(+), 1 deletion(-)
+
+diff --git a/README.md b/README.md
+index b08a155..bb785d5 100644
+--- a/README.md
++++ b/README.md
+@@ -125,6 +125,16 @@ The UI pages:
+ 
+ For UI development, run `.\mvnw.cmd spring-boot:run` inside `marketatlas-ui/` while the API is up on port 8080.
+ 
++## Production deployment
++
++The same code runs in production with no changes to the local setup: GitHub is the source, Render builds the two Dockerfiles (API at the repo root, UI in `marketatlas-ui/`), and the database is a separate Neon PostgreSQL project. Local Docker Compose and the local database are untouched.
++
++- **Configuration is environment variables only; no secrets are in the repo.** API: `SPRING_DATASOURCE_URL` (Neon direct host, `?sslmode=require`), `SPRING_DATASOURCE_USERNAME`, `SPRING_DATASOURCE_PASSWORD`, `ADMIN_PASSWORD`, `TWELVEDATA_API_KEY`, `FRED_API_KEY`. UI: `MARKETATLAS_API_BASE_URL`, `MARKETATLAS_UI_DOCS_URL`, `SERVER_FORWARD_HEADERS_STRATEGY=native`.
++- **Database changes** are Flyway migrations, applied automatically at API start-up. Never edit an applied migration; add a new one.
++- **Free tier behaviour:** services sleep after 15 idle minutes and take about 2 to 3 minutes to wake. The login page pings the API and shows a "waking up" message meanwhile. Scheduled refresh is off, so prices only update when you run a refresh or the seed script.
++- **Deploy:** merge to `main`; Render redeploys after CI passes.
++- **Seed production data:** `.\scripts\seed.ps1 -Api https://<your-api>.onrender.com` (prompts for the admin password).
++
+ ## Design notes
+ 
+ Decisions, trade-offs and known limits are written down in [docs/DECISIONS.md](docs/DECISIONS.md): data handling, the security model, rate limits, and how provider quirks (weekend bars, rate limits, missing CPI months) are handled.
+diff --git a/marketatlas-ui/src/main/java/com/marketatlas/ui/LoginView.java b/marketatlas-ui/src/main/java/com/marketatlas/ui/LoginView.java
+index 3d12726..1f1f8c6 100644
+--- a/marketatlas-ui/src/main/java/com/marketatlas/ui/LoginView.java
++++ b/marketatlas-ui/src/main/java/com/marketatlas/ui/LoginView.java
+@@ -56,6 +56,8 @@ public class LoginView extends VerticalLayout implements PublicView {
+             }
+         });
+ 
++        java.util.concurrent.CompletableFuture.runAsync(api::warmUp);
++
+         setPadding(false);
+         add(AuthPage.wrap("Log in", "Welcome back.", username, password, error, login,
+                 AuthPage.alt("No account yet?", new Anchor("signup", "Create an account"))));
+diff --git a/marketatlas-ui/src/main/java/com/marketatlas/ui/WelcomeGuide.java b/marketatlas-ui/src/main/java/com/marketatlas/ui/WelcomeGuide.java
+index 282d139..11cb8ba 100644
+--- a/marketatlas-ui/src/main/java/com/marketatlas/ui/WelcomeGuide.java
++++ b/marketatlas-ui/src/main/java/com/marketatlas/ui/WelcomeGuide.java
+@@ -42,7 +42,7 @@ final class WelcomeGuide {
+         return List.of(
+                 new Step("Open the API docs",
+                         "Admin tasks run through the API docs (Swagger UI). Click Authorize, choose basicAuth, "
+-                                + "and sign in with the admin username and password from your .env file.",
++                                + "and sign in with the admin username and the ADMIN_PASSWORD you configured.",
+                         "Open the API docs", docsUrl, true),
+                 new Step("Register issuers and assets",
+                         "POST /api/issuers and POST /api/assets add what users can track. Set the currency and "
+diff --git a/marketatlas-ui/src/main/java/com/marketatlas/ui/api/ApiClient.java b/marketatlas-ui/src/main/java/com/marketatlas/ui/api/ApiClient.java
+index 6a25426..99ab85e 100644
+--- a/marketatlas-ui/src/main/java/com/marketatlas/ui/api/ApiClient.java
++++ b/marketatlas-ui/src/main/java/com/marketatlas/ui/api/ApiClient.java
+@@ -47,6 +47,18 @@ public class ApiClient {
+         }
+     }
+ 
++    /**
++     * Fire-and-forget request that wakes a sleeping API (free hosting stops it when idle).
++     * Never throws; the answer is ignored.
++     */
++    public void warmUp() {
++        try {
++            rest.get().uri("/api/assets").retrieve().toBodilessEntity();
++        } catch (RuntimeException ignored) {
++            // best effort only
++        }
++    }
++
+     /** Verifies credentials with a cheap authenticated call; returns normally only on success. */
+     public void checkLogin(String username, String password) {
+         try {
+@@ -294,6 +306,8 @@ public class ApiClient {
+             case 409 -> new ApiException(ApiException.Kind.DUPLICATE_USER, "That username is not available.", null);
+             case 429 -> new ApiException(ApiException.Kind.RATE_LIMITED, "Too many attempts. Please wait and try again.",
+                     retryAfter(e));
++            case 502, 503, 504 -> new ApiException(ApiException.Kind.UNAVAILABLE,
++                    "The server is waking up, which can take up to 3 minutes. Please try again shortly.", null);
+             default -> new ApiException(ApiException.Kind.UNAVAILABLE, "The MarketAtlas API returned an error (" + status + ").", null);
+         };
+     }
+diff --git a/marketatlas-ui/src/test/java/com/marketatlas/ui/api/MeClientTest.java b/marketatlas-ui/src/test/java/com/marketatlas/ui/api/MeClientTest.java
+index 882778a..44721ac 100644
+--- a/marketatlas-ui/src/test/java/com/marketatlas/ui/api/MeClientTest.java
++++ b/marketatlas-ui/src/test/java/com/marketatlas/ui/api/MeClientTest.java
+@@ -61,4 +61,26 @@ class MeClientTest {
+         ApiException e = assertThrows(ApiException.class, () -> client.me("Basic nope"));
+         assertEquals(ApiException.Kind.INVALID_CREDENTIALS, e.kind());
+     }
++
++    @Test
++    void aSleepingApiIsReportedAsWakingUp() {
++        for (HttpStatus status : new HttpStatus[] {HttpStatus.BAD_GATEWAY, HttpStatus.SERVICE_UNAVAILABLE, HttpStatus.GATEWAY_TIMEOUT}) {
++            server.reset();
++            server.expect(requestTo("http://api.test/api/me")).andRespond(withStatus(status));
++
++            ApiException ex = assertThrows(ApiException.class, () -> client.me("Basic abc"));
++
++            assertEquals(ApiException.Kind.UNAVAILABLE, ex.kind());
++            assertTrue(ex.getMessage().contains("waking up"));
++        }
++    }
++
++    @Test
++    void warmUpNeverThrows() {
++        server.expect(requestTo("http://api.test/api/assets")).andRespond(withStatus(HttpStatus.BAD_GATEWAY));
++
++        client.warmUp();
++
++        server.verify();
++    }
+ }
+-- 
+2.43.0
+
