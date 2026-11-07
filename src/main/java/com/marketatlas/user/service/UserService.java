@@ -65,4 +65,11 @@ public class UserService {
             throw new DuplicateResourceException("Username is already taken");
         }
     }
-}
+
+    /** Registered users, newest first, capped so a large sign-up list cannot flood one response. */
+    @Transactional(readOnly = true)
+    public java.util.List<AppUser> list() {
+        final int max = 500;
+        return userRepository.findAll(org.springframework.data.domain.PageRequest.of(0, max,
+                org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "createdAt"))).getContent();
+    }}

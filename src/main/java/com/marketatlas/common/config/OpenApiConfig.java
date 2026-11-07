@@ -28,6 +28,7 @@ public class OpenApiConfig {
 
     private static final Map<String, String> SUMMARIES = Map.ofEntries(
             Map.entry("POST /api/users", "Sign up (always creates a USER)"),
+            Map.entry("GET /api/users", "List registered users, newest first (admin)"),
             Map.entry("GET /api/me", "Who you are: your username and role (USER or ADMIN)"),
             Map.entry("GET /api/assets", "List assets"),
             Map.entry("GET /api/assets/{id}", "Get an asset"),

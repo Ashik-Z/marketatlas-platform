@@ -26,4 +26,9 @@ public class UserController {
         var user = userService.register(request.username(), request.password());
         return ResponseEntity.status(HttpStatus.CREATED).body(UserResponse.from(user));
     }
-}
+
+    /** Administrator only (default-deny): registered users, newest first, never with password hashes. */
+    @org.springframework.web.bind.annotation.GetMapping
+    public java.util.List<UserResponse> list() {
+        return userService.list().stream().map(UserResponse::from).toList();
+    }}

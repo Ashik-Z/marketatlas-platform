@@ -34,7 +34,11 @@ public class MainLayout extends AppLayout {
         accounts.setMatchNested(true);
         SideNavItem guide = new SideNavItem("Guide", "welcome", VaadinIcon.LIGHTBULB.create());
         accounts.setPathAliases(Set.of("account"));
-        nav.addItem(overview, markets, backtest, accounts, guide);
+        nav.addItem(overview, markets, backtest, accounts);
+        if (session.isAdmin()) {
+            nav.addItem(new SideNavItem("Users", "users", VaadinIcon.USERS.create()));
+        }
+        nav.addItem(guide);
 
         Span user = new Span("Signed in as " + session.username());
         Button logout = new Button("Log out", e -> {
@@ -55,4 +59,5 @@ public class MainLayout extends AppLayout {
         return nav.getItems().stream().map(SideNavItem::getLabel).toList();
     }
 }
+
 

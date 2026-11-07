@@ -103,3 +103,8 @@ A short record of what this project is, what it deliberately is not, and why.
 
 - `/api/watchlist/**` accepts only the USER role (the administrator gets 403), for the same reason as trading: the administrator operates the platform, while watching markets is a personal user feature.
 - The UI follows: for the administrator there is no star column on Markets, no Watch button on the asset page and no Watchlist section on the Overview. The market pages themselves (charts, real prices, the monthly-saving panel) stay public and unchanged.
+
+## Admin users page
+
+- `GET /api/users` (administrator only, through the default-deny rule) lists registered users newest first, capped at 500, with username, role and registration time. It never includes password hashes. The bootstrap admin lives in `.env`, not in the database, so it is not listed.
+- The UI has a read-only Users page and sidebar item that only the administrator sees. Managing users (delete, reset password, change role) is deliberately not built.
